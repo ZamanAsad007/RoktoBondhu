@@ -1,0 +1,37 @@
+# Design docs (NEVER push)
+BLOOD_DONATION_DESIGN.md
+*design.md
+*DESIGN.md
+
+# Dependencies
+node_modules/
+package-lock.json.bak
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Build artifacts
+dist/
+build/
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

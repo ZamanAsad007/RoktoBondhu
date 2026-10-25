@@ -1,0 +1,22 @@
+{
+  "name": "roktobondhu-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RoktoBondhu - Blood Donation Matcher Monorepo",
+  "workspaces": [
+    "services/*",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace=services/core-api run dev",
+    "start:api": "npm --workspace=services/core-api run start",
+    "migrate": "npm --workspace=services/core-api run migrate",
+    "seed:donors": "npm --workspace=services/core-api run seed:donors",
+    "test": "npm --workspace=services/core-api run test",
+    "lint": "npm --workspace=services/core-api run lint",
+    "format": "prettier --write \"**/*.{js,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}
