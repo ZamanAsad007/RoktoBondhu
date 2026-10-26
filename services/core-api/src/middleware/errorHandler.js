@@ -26,9 +26,10 @@ function errorHandler(err, req, res, next) {
     return sendError(res, 'Referenced resource does not exist', 400);
   }
 
-  // Custom application error with statusCode
-  if (err.statusCode) {
-    return sendError(res, err.message, err.statusCode, err.details);
+  // Custom application error with statusCode or status
+  const statusCode = err.statusCode || err.status;
+  if (statusCode) {
+    return sendError(res, err.message, statusCode, err.details);
   }
 
   // Fallback 500
