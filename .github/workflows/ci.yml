@@ -1,0 +1,129 @@
+name: CI / CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: roktobondhu
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d roktobondhu"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
+
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5433
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: roktobondhu
+      REDIS_HOST: localhost
+      REDIS_PORT: 6380
+      MAILPIT_HOST: localhost
+      MAILPIT_SMTP_PORT: 1025
+      JWT_ACCESS_SECRET: test_jwt_access_secret_for_ci_pipeline_32bytes_or_more
+      JWT_REFRESH_SECRET: test_jwt_refresh_secret_for_ci_pipeline_32bytes_or_more
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Database Migrations
+        run: npm run migrate
+
+      - name: Run Core API Tests
+        run: npm run test:api
+
+      - name: Run Notification Service Tests
+        run: npm run test:notification
+
+      - name: Run Frontend Tests
+        run: npm run test:frontend
+
+      - name: Build Frontend Assets
+        run: npm run build:frontend
+
+  docker-build:
+    name: Docker Multi-Stage Image Builds
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Core API Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/core-api/Dockerfile
+          push: false
+          tags: roktobondhu-core-api:ci
+
+      - name: Build Notification Service Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/notification-service/Dockerfile
+          push: false
+          tags: roktobondhu-notification-service:ci
+
+      - name: Build Frontend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: false
+          tags: roktobondhu-frontend:ci
+
+      - name: Build Gateway Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: gateway/Dockerfile
+          push: false
+          tags: roktobondhu-gateway:ci
