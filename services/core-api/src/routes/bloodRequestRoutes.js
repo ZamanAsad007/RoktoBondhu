@@ -25,4 +25,11 @@ router.get('/:id', requireAuth, bloodRequestController.getRequestById);
 // Cancel request
 router.post('/:id/cancel', requireAuth, bloodRequestController.cancelRequest);
 
+// Confirm donation
+router.post(
+  '/:id/matches/:matchId/confirm-donation',
+  requireAuth,
+  bloodRequestController.confirmDonation
+);
+
 module.exports = router;

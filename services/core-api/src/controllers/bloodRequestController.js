@@ -48,6 +48,19 @@ class BloodRequestController {
       next(err);
     }
   }
+
+  async confirmDonation(req, res, next) {
+    try {
+      const donation = await bloodRequestService.confirmDonation(
+        req.params.id,
+        req.params.matchId,
+        req.user
+      );
+      return sendSuccess(res, { donation }, 200);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new BloodRequestController();
