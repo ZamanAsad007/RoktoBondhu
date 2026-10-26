@@ -1,0 +1,310 @@
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import {
+  Droplet,
+  MapPin,
+  Clock,
+  Phone,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Radio,
+  UserCheck,
+  ShieldAlert,
+  ArrowLeft,
+  Calendar,
+} from 'lucide-react';
+
+export default function RequestDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
+
+  // Fetch Request Details
+  const {
+    data: request,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['bloodRequest', id],
+    queryFn: async () => {
+      const res = await api.getRequestById(id);
+      return res.data?.request || res.data || null;
+    },
+    refetchInterval: 8000, // Poll every 8s while viewer is monitoring active waves
+  });
+
+  // Cancel Request Mutation
+  const cancelMutation = useMutation({
+    mutationFn: () => api.cancelBloodRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bloodRequest', id] });
+      queryClient.invalidateQueries({ queryKey: ['myRequests'] });
+      setFeedback({ type: 'info', message: 'Blood request has been cancelled.' });
+    },
+    onError: (err) => {
+      setFeedback({ type: 'error', message: err.message || 'Could not cancel request.' });
+    },
+  });
+
+  // Confirm Donation Mutation
+  const confirmMutation = useMutation({
+    mutationFn: (matchId) => api.confirmDonation(id, matchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bloodRequest', id] });
+      setFeedback({ type: 'success', message: 'Donation successfully confirmed! Thank you to the donor.' });
+      setTimeout(() => setFeedback({ type: '', message: '' }), 6000);
+    },
+    onError: (err) => {
+      setFeedback({ type: 'error', message: err.message || 'Could not confirm donation.' });
+    },
+  });
+
+  function handleCancel() {
+    if (window.confirm('Are you sure you want to cancel this blood request? Pending donor notifications will be withdrawn.')) {
+      cancelMutation.mutate();
+    }
+  }
+
+  if (isLoading) {
+    return <p style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading request details...</p>;
+  }
+
+  if (error || !request) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: 40, color: 'var(--danger)' }}>
+        {error?.message || 'Blood request not found.'}
+      </div>
+    );
+  }
+
+  const isRequester = user && user.id === request.requester_id;
+  const isAdmin = user && user.role === 'ADMIN';
+  const matches = request.matches || [];
+  const acceptedMatches = matches.filter((m) => m.status === 'ACCEPTED' || m.status === 'DONATED');
+  const isFulfilled = request.status === 'FULFILLED' || acceptedMatches.length >= request.units_needed;
+  const canCancel =
+    (isRequester || isAdmin) &&
+    (request.status === 'OPEN' || request.status === 'PARTIALLY_FULFILLED');
+
+  return (
+    <div style={{ maxWidth: 850, margin: '0 auto' }}>
+      <button
+        onClick={() => navigate('/requests')}
+        className="btn btn-secondary btn-sm"
+        style={{ marginBottom: 16 }}
+      >
+        <ArrowLeft size={16} />
+        <span>Back to My Requests</span>
+      </button>
+
+      {feedback.message && (
+        <div
+          style={{
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-sm)',
+            marginBottom: 20,
+            background:
+              feedback.type === 'success'
+                ? 'var(--success-light)'
+                : feedback.type === 'error'
+                ? 'var(--danger-light)'
+                : 'var(--info-light)',
+            color:
+              feedback.type === 'success'
+                ? 'var(--success)'
+                : feedback.type === 'error'
+                ? 'var(--danger)'
+                : 'var(--info)',
+            fontSize: '0.92rem',
+            fontWeight: 600,
+          }}
+        >
+          {feedback.message}
+        </div>
+      )}
+
+      {/* Main Request Header Card */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span className="badge badge-blood">{request.blood_group}</span>
+              <span className={`badge badge-${request.urgency ? request.urgency.toLowerCase() : 'normal'}`}>
+                {request.urgency}
+              </span>
+              <span
+                style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: 4,
+                  background: isFulfilled
+                    ? 'var(--success-light)'
+                    : request.status === 'CANCELLED'
+                    ? '#f1f5f9'
+                    : 'var(--primary-light)',
+                  color: isFulfilled
+                    ? 'var(--success)'
+                    : request.status === 'CANCELLED'
+                    ? 'var(--text-muted)'
+                    : 'var(--primary-dark)',
+                }}
+              >
+                {request.status}
+              </span>
+            </div>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 800 }}>{request.hospital_name}</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: 4 }}>
+              Patient: <strong>{request.patient_name}</strong> • Units Needed: <strong>{request.units_needed}</strong>
+            </p>
+          </div>
+
+          {canCancel && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelMutation.isPending}
+              className="btn btn-danger btn-sm"
+            >
+              <XCircle size={16} />
+              <span>{cancelMutation.isPending ? 'Cancelling...' : 'Cancel Request'}</span>
+            </button>
+          )}
+        </div>
+
+        {/* Timeline & Wave Progress Bar */}
+        <div style={{ background: '#f8fafc', padding: 16, borderRadius: 'var(--radius-sm)', marginTop: 20 }}>
+          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 12 }}>
+            Matching Status & Wave Timeline
+          </h4>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, textAlign: 'center' }}>
+            <div style={{ padding: '8px 4px', background: '#ffffff', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Wave Round</span>
+              <p style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>
+                Wave {request.wave_number || 1}
+              </p>
+            </div>
+
+            <div style={{ padding: '8px 4px', background: '#ffffff', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Search Radius</span>
+              <p style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>
+                {request.current_radius_km || 5} km
+              </p>
+            </div>
+
+            <div style={{ padding: '8px 4px', background: '#ffffff', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Confirmed</span>
+              <p style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)' }}>
+                {acceptedMatches.length} / {request.units_needed}
+              </p>
+            </div>
+
+            <div style={{ padding: '8px 4px', background: '#ffffff', borderRadius: 6, border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Wave Timeout</span>
+              <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', marginTop: 2 }}>
+                {request.urgency === 'CRITICAL' ? '10 mins' : request.urgency === 'URGENT' ? '20 mins' : '30 mins'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Time Info */}
+        <div style={{ display: 'flex', gap: 24, marginTop: 16, fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Clock size={16} />
+            <span>Needed by: {new Date(request.needed_by).toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Calendar size={16} />
+            <span>Expires at: {new Date(request.expires_at).toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Accepted Donors Section */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <UserCheck size={22} color="var(--success)" />
+          <span>Accepted Donors ({acceptedMatches.length})</span>
+        </h2>
+
+        {acceptedMatches.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '30px 16px', background: '#f8fafc', borderRadius: 'var(--radius-sm)' }}>
+            <Radio size={32} color="var(--primary)" style={{ margin: '0 auto 8px' }} />
+            <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Matching Waves Are Active</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: 4 }}>
+              Nearby compatible donors in Wave {request.wave_number || 1} are being notified. When a donor accepts, their contact phone will immediately appear here.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {acceptedMatches.map((m) => {
+              const isDonated = m.status === 'DONATED';
+              return (
+                <div
+                  key={m.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: 16,
+                    background: '#f0fdf4',
+                    border: '1px solid #86efac',
+                    borderRadius: 'var(--radius-sm)',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{m.donor_name}</span>
+                      <span className="badge badge-blood">{m.donor_blood_group}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        (approx {m.distance_km || '?'} km away)
+                      </span>
+                    </div>
+
+                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Phone size={16} color="var(--success)" />
+                      <a
+                        href={`tel:${m.donor_phone}`}
+                        style={{ color: 'var(--success)', fontWeight: 700, textDecoration: 'underline' }}
+                      >
+                        {m.donor_phone}
+                      </a>
+                    </div>
+                  </div>
+
+                  <div>
+                    {isDonated ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--success)', fontWeight: 700 }}>
+                        <CheckCircle size={18} />
+                        <span>Donation Confirmed</span>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => confirmMutation.mutate(m.id)}
+                        disabled={confirmMutation.isPending}
+                        className="btn btn-success btn-sm"
+                      >
+                        <CheckCircle size={16} />
+                        <span>Confirm Donation</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
