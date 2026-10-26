@@ -16,6 +16,9 @@ router.post(
 // List logged-in user's requests
 router.get('/mine', requireAuth, bloodRequestController.getMyRequests);
 
+// Browse nearby open requests matching donor's blood group
+router.get('/nearby', requireAuth, bloodRequestController.getNearbyRequests);
+
 // Request detail (contact info masked unless requester, admin, or accepted donor)
 router.get('/:id', requireAuth, bloodRequestController.getRequestById);
 

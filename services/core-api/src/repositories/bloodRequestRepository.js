@@ -4,20 +4,20 @@ class BloodRequestRepository {
   /**
    * Creates a new blood request.
    */
-  async createRequest({
-    requesterId,
-    patientName,
-    bloodGroup,
-    unitsNeeded,
-    hospitalName,
-    latitude,
-    longitude,
-    city,
-    urgency,
-    neededBy,
-    contactPhone,
-    expiresAt,
-  }) {
+  async createRequest(params) {
+    const requesterId = params.requesterId || params.requester_id;
+    const patientName = params.patientName || params.patient_name;
+    const bloodGroup = params.bloodGroup || params.blood_group;
+    const unitsNeeded = params.unitsNeeded || params.units_needed;
+    const hospitalName = params.hospitalName || params.hospital_name;
+    const latitude = params.latitude;
+    const longitude = params.longitude;
+    const city = params.city;
+    const urgency = params.urgency;
+    const neededBy = params.neededBy || params.needed_by;
+    const contactPhone = params.contactPhone || params.contact_phone;
+    const expiresAt = params.expiresAt || params.expires_at;
+
     const text = `
       INSERT INTO blood_requests (
         requester_id,
