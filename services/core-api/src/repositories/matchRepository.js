@@ -89,6 +89,20 @@ class MatchRepository {
   }
 
   /**
+   * Retrieves all accepted matches for a request.
+   */
+  async findAcceptedMatchesByRequestId(requestId, client = db) {
+    const text = `
+      SELECT rm.*, u.name AS donor_name, u.phone AS donor_phone, u.email AS donor_email
+      FROM request_matches rm
+      JOIN users u ON u.id = rm.donor_id
+      WHERE rm.request_id = $1 AND rm.status = 'ACCEPTED'
+    `;
+    const res = await client.query(text, [requestId]);
+    return res.rows;
+  }
+
+  /**
    * Retrieves all matches for a specific donor, with blood request details.
    */
   async findMatchesByDonorId(donorId, { limit = 20, offset = 0 } = {}) {

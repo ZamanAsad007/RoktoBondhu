@@ -1,7 +1,9 @@
 const bloodRequestRepository = require('../repositories/bloodRequestRepository');
 const matchingRepository = require('../repositories/matchingRepository');
+const matchRepository = require('../repositories/matchRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
 const userRepository = require('../repositories/userRepository');
+const notificationQueue = require('../jobs/notificationQueue');
 const db = require('../config/db');
 const {
   canTransitionRequest,
@@ -267,7 +269,30 @@ class BloodRequestService {
         client
       );
 
+      // Fetch accepted donors before committing
+      const acceptedMatches = await matchRepository.findAcceptedMatchesByRequestId(requestId, client);
+
       await client.query('COMMIT');
+
+      // Post-commit notify accepted donors
+      for (const m of acceptedMatches) {
+        try {
+          await notificationQueue.enqueueNotification({
+            type: 'request.cancelled',
+            userId: m.donor_id,
+            payload: {
+              requestId: request.id,
+              patientName: request.patient_name,
+              bloodGroup: request.blood_group,
+              hospitalName: request.hospital_name,
+            },
+            channels: ['in_app'],
+          });
+        } catch (notifyErr) {
+          console.error('[BloodRequestService] Error notifying donor of cancellation:', notifyErr.message);
+        }
+      }
+
       return updatedRequest;
     } catch (err) {
       await client.query('ROLLBACK');

@@ -10,9 +10,13 @@
   "scripts": {
     "dev:api": "npm --workspace=services/core-api run dev",
     "start:api": "npm --workspace=services/core-api run start",
+    "dev:notification": "npm --workspace=services/notification-service run dev",
+    "start:notification": "npm --workspace=services/notification-service run start",
     "migrate": "npm --workspace=services/core-api run migrate",
     "seed:donors": "npm --workspace=services/core-api run seed:donors",
-    "test": "npm --workspace=services/core-api run test",
+    "test": "npm --workspace=services/core-api run test && npm --workspace=services/notification-service run test",
+    "test:api": "npm --workspace=services/core-api run test",
+    "test:notification": "npm --workspace=services/notification-service run test",
     "lint": "npm --workspace=services/core-api run lint",
     "format": "prettier --write \"**/*.{js,json,md}\""
   },

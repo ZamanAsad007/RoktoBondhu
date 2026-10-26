@@ -5,6 +5,7 @@ const authRoutes = require('./routes/authRoutes');
 const donorRoutes = require('./routes/donorRoutes');
 const bloodRequestRoutes = require('./routes/bloodRequestRoutes');
 const matchRoutes = require('./routes/matchRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const { requireAuth, requireRole } = require('./middleware/auth');
 const userRepository = require('./repositories/userRepository');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
@@ -35,6 +36,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/donors', donorRoutes);
 app.use('/api/requests', bloodRequestRoutes);
 app.use('/api/matches', matchRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Admin-protected route for role verification and user blocking (Phase 1 / Admin requirement)
 app.patch('/api/admin/users/:id/block', requireAuth, requireRole('ADMIN'), async (req, res, next) => {

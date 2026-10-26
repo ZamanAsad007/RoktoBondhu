@@ -41,6 +41,7 @@ class MatchingRepository {
         ST_X(dp.location::geometry) AS longitude,
         u.name AS donor_name,
         u.phone AS donor_phone,
+        u.email AS donor_email,
         ROUND((ST_Distance(dp.location, r.location) / 1000.0)::numeric, 2) AS distance_km
       FROM blood_requests r
       CROSS JOIN donor_profiles dp
