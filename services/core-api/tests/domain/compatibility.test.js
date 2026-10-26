@@ -3,6 +3,7 @@ const {
   COMPATIBILITY_MAP,
   isValidBloodGroup,
   compatibleDonorGroups,
+  compatibleRecipientGroups,
   isCompatible,
 } = require('../../src/domain/compatibility');
 
@@ -72,6 +73,28 @@ describe('Blood Compatibility Domain Logic', () => {
       expect(() => compatibleDonorGroups('XYZ')).toThrow('Invalid recipient blood group');
       expect(() => compatibleDonorGroups('')).toThrow('Invalid recipient blood group');
       expect(() => compatibleDonorGroups(null)).toThrow('Invalid recipient blood group');
+    });
+  });
+
+  describe('compatibleRecipientGroups Reverse Table Rules', () => {
+    test('O- donor can donate to all 8 blood groups (universal donor)', () => {
+      const recipients = compatibleRecipientGroups('O-');
+      expect(recipients).toHaveLength(8);
+      BLOOD_GROUPS.forEach((group) => {
+        expect(recipients).toContain(group);
+      });
+    });
+
+    test('O+ donor can donate to O+, A+, B+, AB+', () => {
+      expect(compatibleRecipientGroups('O+')).toEqual(['O+', 'A+', 'B+', 'AB+']);
+    });
+
+    test('AB+ donor can only donate to AB+', () => {
+      expect(compatibleRecipientGroups('AB+')).toEqual(['AB+']);
+    });
+
+    test('throws for unknown donor blood group', () => {
+      expect(() => compatibleRecipientGroups('XYZ')).toThrow('Invalid donor blood group');
     });
   });
 

@@ -22,6 +22,15 @@ class BloodRequestController {
     }
   }
 
+  async getNearbyRequests(req, res, next) {
+    try {
+      const requests = await bloodRequestService.getNearbyRequestsForDonor(req.user, req.query);
+      return sendSuccess(res, { requests });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getRequestById(req, res, next) {
     try {
       const request = await bloodRequestService.getRequestById(req.params.id, req.user);

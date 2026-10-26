@@ -70,10 +70,24 @@ function isCompatible(recipientGroup, donorGroup) {
   return compatibleDonors.includes(donorGroup.trim().toUpperCase());
 }
 
+/**
+ * Returns an array of recipient blood groups that can receive blood from a given donor blood group.
+ * @param {string} donorGroup
+ * @returns {string[]}
+ */
+function compatibleRecipientGroups(donorGroup) {
+  if (!isValidBloodGroup(donorGroup)) {
+    throw new Error(`Invalid donor blood group: "${donorGroup}". Must be one of: ${BLOOD_GROUPS.join(', ')}`);
+  }
+  const normalized = donorGroup.trim().toUpperCase();
+  return BLOOD_GROUPS.filter((recipient) => COMPATIBILITY_MAP[recipient].includes(normalized));
+}
+
 module.exports = {
   BLOOD_GROUPS,
   COMPATIBILITY_MAP,
   isValidBloodGroup,
   compatibleDonorGroups,
+  compatibleRecipientGroups,
   isCompatible,
 };
