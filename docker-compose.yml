@@ -39,6 +39,76 @@ services:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_WEB_PORT:-8025}:8025"
 
+  core-api:
+    build:
+      context: .
+      dockerfile: services/core-api/Dockerfile
+    container_name: roktobondhu-core-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-roktobondhu}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-blood_donation_access_secret_key_32bytes_or_more_change_in_production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-blood_donation_refresh_secret_key_32bytes_or_more_change_in_production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: roktobondhu-notification-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-roktobondhu}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAILPIT_HOST: mailpit
+      MAILPIT_SMTP_PORT: 1025
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: roktobondhu-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: roktobondhu-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - core-api
+      - frontend
+
 volumes:
   pgdata:
   redisdata:
