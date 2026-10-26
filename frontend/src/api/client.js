@@ -151,12 +151,17 @@ export const api = {
   markNotificationRead: (id) => apiClient(`/notifications/${id}/read`, { method: 'PATCH' }),
   markAllNotificationsRead: () => apiClient('/notifications/read-all', { method: 'PATCH' }),
 
-  // Admin
+  // Admin & Safety
   getAdminStats: () => apiClient('/admin/stats'),
   getAdminRequests: (params = '') => apiClient(`/admin/requests${params ? `?${params}` : ''}`),
   getAdminReports: () => apiClient('/admin/reports'),
   setBlockUser: (userId, isBlocked) =>
     apiClient(`/admin/users/${userId}/block`, { method: 'PATCH', body: JSON.stringify({ isBlocked }) }),
-  updateReportStatus: (reportId, status) =>
-    apiClient(`/admin/reports/${reportId}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  updateReportStatus: (reportId, status, resolutionNotes = null) =>
+    apiClient(`/admin/reports/${reportId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, resolutionNotes }),
+    }),
+  createReport: (body) => apiClient('/reports', { method: 'POST', body: JSON.stringify(body) }),
+  searchUsers: (q) => apiClient(`/admin/users/search?q=${encodeURIComponent(q)}`),
 };

@@ -15,6 +15,7 @@ import CreateRequest from './pages/CreateRequest';
 import MyRequests from './pages/MyRequests';
 import RequestDetail from './pages/RequestDetail';
 import NotificationsInbox from './pages/NotificationsInbox';
+import AdminDashboard from './pages/AdminDashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +87,16 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <NotificationsInbox />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected Admin Route (Phase 10) */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute roleRequired="ADMIN">
+                    <AdminDashboard />
                   </ProtectedRoute>
                 }
               />

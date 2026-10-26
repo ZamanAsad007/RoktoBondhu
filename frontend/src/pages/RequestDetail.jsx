@@ -16,7 +16,9 @@ import {
   ShieldAlert,
   ArrowLeft,
   Calendar,
+  Flag,
 } from 'lucide-react';
+import ReportModal from '../components/ReportModal';
 
 export default function RequestDetail() {
   const { id } = useParams();
@@ -25,6 +27,7 @@ export default function RequestDetail() {
   const queryClient = useQueryClient();
 
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Fetch Request Details
   const {
@@ -166,17 +169,38 @@ export default function RequestDetail() {
             </p>
           </div>
 
-          {canCancel && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            {canCancel && (
+              <button
+                onClick={handleCancel}
+                disabled={cancelMutation.isPending}
+                className="btn btn-danger btn-sm"
+              >
+                <XCircle size={16} />
+                <span>{cancelMutation.isPending ? 'Cancelling...' : 'Cancel Request'}</span>
+              </button>
+            )}
+
             <button
-              onClick={handleCancel}
-              disabled={cancelMutation.isPending}
-              className="btn btn-danger btn-sm"
+              onClick={() => setShowReportModal(true)}
+              className="btn btn-secondary btn-sm"
+              style={{ color: 'var(--text-muted)' }}
+              title="Report suspicious or fake request"
             >
-              <XCircle size={16} />
-              <span>{cancelMutation.isPending ? 'Cancelling...' : 'Cancel Request'}</span>
+              <Flag size={14} />
+              <span>Report</span>
             </button>
-          )}
+          </div>
         </div>
+
+        {showReportModal && (
+          <ReportModal
+            requestId={request.id}
+            userId={request.requester_id}
+            title="Report Blood Request"
+            onClose={() => setShowReportModal(false)}
+          />
+        )}
 
         {/* Timeline & Wave Progress Bar */}
         <div style={{ background: '#f8fafc', padding: 16, borderRadius: 'var(--radius-sm)', marginTop: 20 }}>
