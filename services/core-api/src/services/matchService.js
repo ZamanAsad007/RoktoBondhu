@@ -1,6 +1,7 @@
 const matchRepository = require('../repositories/matchRepository');
 const bloodRequestRepository = require('../repositories/bloodRequestRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
+const notificationQueue = require('../jobs/notificationQueue');
 const db = require('../config/db');
 const { maskPhoneNumber } = require('./bloodRequestService');
 const { REQUEST_STATUSES } = require('../domain/requestStateMachine');
@@ -162,6 +163,66 @@ class MatchService {
       );
 
       await client.query('COMMIT');
+
+      // Post-commit notification side-effects (non-blocking)
+      try {
+        // 1. Notify requester that donor accepted
+        await notificationQueue.enqueueNotification({
+          type: 'donor.accepted',
+          userId: request.requester_id,
+          recipient: {
+            id: request.requester_id,
+          },
+          payload: {
+            requestId: request.id,
+            matchId,
+            donorId: currentUser.id,
+            donorName: currentUser.name,
+            donorPhone: currentUser.phone,
+            patientName: request.patient_name,
+            bloodGroup: request.blood_group,
+            hospitalName: request.hospital_name,
+          },
+          channels: ['in_app', 'email'],
+        });
+
+        // 2. Schedule donation reminder for the donor before needed_by
+        await notificationQueue.scheduleDonationReminder({
+          donorId: currentUser.id,
+          recipient: {
+            id: currentUser.id,
+            name: currentUser.name,
+            phone: currentUser.phone,
+            email: currentUser.email,
+          },
+          request,
+        });
+
+        // 3. If request is now fulfilled, notify requester and all accepted donors
+        if (isFulfilled) {
+          const acceptedMatches = await matchRepository.findAcceptedMatchesByRequestId(request.id);
+          const allUserIds = Array.from(
+            new Set([request.requester_id, ...acceptedMatches.map((m) => m.donor_id)])
+          );
+
+          for (const uid of allUserIds) {
+            await notificationQueue.enqueueNotification({
+              type: 'request.fulfilled',
+              userId: uid,
+              payload: {
+                requestId: request.id,
+                patientName: request.patient_name,
+                bloodGroup: request.blood_group,
+                hospitalName: request.hospital_name,
+                unitsNeeded: request.units_needed,
+              },
+              channels: ['in_app', 'email'],
+            });
+          }
+        }
+      } catch (notifyErr) {
+        console.error('[MatchService] Post-commit notification error:', notifyErr.message);
+      }
 
       return {
         match: updatedMatch,

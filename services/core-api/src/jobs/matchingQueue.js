@@ -4,6 +4,7 @@ const matchingConfig = require('../config/matching.config');
 const bloodRequestRepository = require('../repositories/bloodRequestRepository');
 const matchingRepository = require('../repositories/matchingRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
+const notificationQueue = require('./notificationQueue');
 const { REQUEST_STATUSES } = require('../domain/requestStateMachine');
 
 const redisConnection = {
@@ -85,6 +86,35 @@ async function processRunWave(requestId) {
     }));
 
     createdMatches = await matchingRepository.createMatchesBatch(matchPayloads);
+
+    // Enqueue notifications for matched donors
+    for (const donor of eligibleDonors) {
+      try {
+        await notificationQueue.enqueueNotification({
+          type: 'request.nearby',
+          userId: donor.donor_id,
+          recipient: {
+            id: donor.donor_id,
+            name: donor.donor_name || 'Donor',
+            phone: donor.donor_phone,
+            email: donor.donor_email,
+          },
+          payload: {
+            requestId: request.id,
+            patientName: request.patient_name,
+            bloodGroup: request.blood_group,
+            unitsNeeded: request.units_needed,
+            hospitalName: request.hospital_name,
+            urgency: request.urgency,
+            neededBy: request.needed_by,
+            distanceKm: donor.distance_km,
+          },
+          channels: ['in_app', 'sms', 'email'],
+        });
+      } catch (err) {
+        console.error('[Matching Queue] Error enqueuing notification for donor:', err.message);
+      }
+    }
 
     await auditLogRepository.log({
       actorId: null,
@@ -204,6 +234,23 @@ async function processExpireRequest(requestId) {
       metadata: { expires_at: request.expires_at },
     });
 
+    try {
+      await notificationQueue.enqueueNotification({
+        type: 'request.expired',
+        userId: request.requester_id,
+        payload: {
+          requestId: request.id,
+          patientName: request.patient_name,
+          bloodGroup: request.blood_group,
+          hospitalName: request.hospital_name,
+          expiresAt: request.expires_at,
+        },
+        channels: ['in_app', 'email'],
+      });
+    } catch (err) {
+      console.error('[Matching Queue] Error enqueuing expiry notification:', err.message);
+    }
+
     return { status: 'EXPIRED' };
   }
 
@@ -274,6 +321,7 @@ async function closeMatchingQueue() {
     await matchingQueue.close();
     matchingQueue = null;
   }
+  await notificationQueue.closeNotificationQueue();
 }
 
 module.exports = {
