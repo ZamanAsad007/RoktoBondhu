@@ -1,0 +1,288 @@
+const { Queue, Worker } = require('bullmq');
+const config = require('../config');
+const matchingConfig = require('../config/matching.config');
+const bloodRequestRepository = require('../repositories/bloodRequestRepository');
+const matchingRepository = require('../repositories/matchingRepository');
+const auditLogRepository = require('../repositories/auditLogRepository');
+const { REQUEST_STATUSES } = require('../domain/requestStateMachine');
+
+const redisConnection = {
+  host: config.redis.host,
+  port: config.redis.port,
+  password: config.redis.password,
+  maxRetriesPerRequest: null,
+};
+
+const MATCHING_QUEUE_NAME = 'matching-waves';
+
+let matchingQueue = null;
+let matchingWorker = null;
+
+function getMatchingQueue() {
+  if (!matchingQueue) {
+    matchingQueue = new Queue(MATCHING_QUEUE_NAME, {
+      connection: redisConnection,
+      defaultJobOptions: {
+        removeOnComplete: 100,
+        removeOnFail: 200,
+      },
+    });
+  }
+  return matchingQueue;
+}
+
+/**
+ * Executes a matching wave for a blood request.
+ * Finds eligible donors within the current radius, creates NOTIFIED match records,
+ * and schedules the subsequent radius expansion job.
+ */
+async function processRunWave(requestId) {
+  const request = await bloodRequestRepository.findById(requestId);
+  if (!request) {
+    return { status: 'NOT_FOUND' };
+  }
+
+  // If already terminal or cancelled/fulfilled, do nothing
+  if (
+    request.status === REQUEST_STATUSES.FULFILLED ||
+    request.status === REQUEST_STATUSES.CANCELLED ||
+    request.status === REQUEST_STATUSES.EXPIRED
+  ) {
+    return { status: 'COMPLETED_OR_TERMINAL', requestStatus: request.status };
+  }
+
+  // Check if expired by time
+  if (new Date(request.expires_at).getTime() <= Date.now()) {
+    await processExpireRequest(requestId);
+    return { status: 'EXPIRED' };
+  }
+
+  const acceptedCount = request.accepted_count || 0;
+  const unitsRemaining = request.units_needed - acceptedCount;
+  if (unitsRemaining <= 0) {
+    return { status: 'ALREADY_FULFILLED' };
+  }
+
+  // Calculate target batch size
+  const targetBatchSize = Math.max(
+    matchingConfig.minDonorsPerWave,
+    Math.min(unitsRemaining * matchingConfig.donorsPerUnit, matchingConfig.maxDonorsPerWave)
+  );
+
+  const eligibleDonors = await matchingRepository.findEligibleDonorsForRequest({
+    requestId,
+    radiusKm: request.current_radius_km,
+    limit: targetBatchSize,
+  });
+
+  let createdMatches = [];
+  if (eligibleDonors.length > 0) {
+    const matchPayloads = eligibleDonors.map((donor) => ({
+      requestId,
+      donorId: donor.donor_id,
+      distanceKm: donor.distance_km,
+      waveNumber: request.wave_number,
+    }));
+
+    createdMatches = await matchingRepository.createMatchesBatch(matchPayloads);
+
+    await auditLogRepository.log({
+      actorId: null,
+      action: 'WAVE_DISPATCHED',
+      entity: 'blood_requests',
+      entityId: requestId,
+      metadata: {
+        wave_number: request.wave_number,
+        radius_km: request.current_radius_km,
+        donors_found: eligibleDonors.length,
+        matches_created: createdMatches.length,
+      },
+    });
+  }
+
+  // Schedule delayed wave expansion if not fulfilled
+  const queue = getMatchingQueue();
+  const timeoutMs =
+    matchingConfig.waveTimeoutsMs[request.urgency] || matchingConfig.waveTimeoutsMs.NORMAL;
+
+  await queue.add(
+    'expand-wave',
+    { requestId },
+    {
+      delay: timeoutMs,
+      jobId: `expand-wave-${requestId}-${request.wave_number}`,
+    }
+  );
+
+  return {
+    status: 'WAVE_PROCESSED',
+    waveNumber: request.wave_number,
+    radiusKm: request.current_radius_km,
+    matchesCreated: createdMatches.length,
+  };
+}
+
+/**
+ * Checks if request needs more donors and expands the radius ring to the next tier.
+ */
+async function processExpandWave(requestId) {
+  const request = await bloodRequestRepository.findById(requestId);
+  if (!request) {
+    return { status: 'NOT_FOUND' };
+  }
+
+  // Check if still active
+  if (
+    request.status !== REQUEST_STATUSES.OPEN &&
+    request.status !== REQUEST_STATUSES.PARTIALLY_FULFILLED
+  ) {
+    return { status: 'TERMINATED', requestStatus: request.status };
+  }
+
+  if (new Date(request.expires_at).getTime() <= Date.now()) {
+    await processExpireRequest(requestId);
+    return { status: 'EXPIRED' };
+  }
+
+  const acceptedCount = request.accepted_count || 0;
+  if (acceptedCount >= request.units_needed) {
+    return { status: 'FULFILLED' };
+  }
+
+  const rings = matchingConfig.radiusRingsKm;
+  const currentRingIdx = rings.indexOf(request.current_radius_km);
+
+  if (currentRingIdx !== -1 && currentRingIdx < rings.length - 1) {
+    const nextRadiusKm = rings[currentRingIdx + 1];
+    const nextWaveNumber = request.wave_number + 1;
+
+    await matchingRepository.updateWaveProgress(requestId, {
+      currentRadiusKm: nextRadiusKm,
+      waveNumber: nextWaveNumber,
+    });
+
+    await auditLogRepository.log({
+      actorId: null,
+      action: 'RADIUS_EXPANDED',
+      entity: 'blood_requests',
+      entityId: requestId,
+      metadata: {
+        previous_radius_km: request.current_radius_km,
+        new_radius_km: nextRadiusKm,
+        wave_number: nextWaveNumber,
+      },
+    });
+
+    return processRunWave(requestId);
+  }
+
+  // Already at max radius ring; run one more wave check in case new donors became available
+  return processRunWave(requestId);
+}
+
+/**
+ * Handles request expiration and auto-expires remaining NOTIFIED matches.
+ */
+async function processExpireRequest(requestId) {
+  const request = await bloodRequestRepository.findById(requestId);
+  if (!request) {
+    return { status: 'NOT_FOUND' };
+  }
+
+  if (
+    request.status === REQUEST_STATUSES.OPEN ||
+    request.status === REQUEST_STATUSES.PARTIALLY_FULFILLED
+  ) {
+    await bloodRequestRepository.updateStatus(requestId, REQUEST_STATUSES.EXPIRED);
+    await matchingRepository.expirePendingMatches(requestId);
+
+    await auditLogRepository.log({
+      actorId: null,
+      action: 'REQUEST_EXPIRED',
+      entity: 'blood_requests',
+      entityId: requestId,
+      metadata: { expires_at: request.expires_at },
+    });
+
+    return { status: 'EXPIRED' };
+  }
+
+  return { status: 'ALREADY_TERMINATED', currentStatus: request.status };
+}
+
+/**
+ * Schedules expiration job at the calculated expires_at date.
+ */
+async function scheduleRequestExpiry(requestId, expiresAt) {
+  const expiresAtMs = new Date(expiresAt).getTime();
+  const delay = Math.max(0, expiresAtMs - Date.now());
+  const queue = getMatchingQueue();
+  return queue.add(
+    'expire-request',
+    { requestId },
+    {
+      delay,
+      jobId: `expire-request-${requestId}`,
+    }
+  );
+}
+
+/**
+ * Starts the BullMQ worker for the matching-waves queue.
+ */
+function startMatchingWorker() {
+  if (matchingWorker) {
+    return matchingWorker;
+  }
+
+  matchingWorker = new Worker(
+    MATCHING_QUEUE_NAME,
+    async (job) => {
+      switch (job.name) {
+        case 'run-wave':
+          return processRunWave(job.data.requestId);
+        case 'expand-wave':
+          return processExpandWave(job.data.requestId);
+        case 'expire-request':
+          return processExpireRequest(job.data.requestId);
+        default:
+          throw new Error(`Unknown matching job name: ${job.name}`);
+      }
+    },
+    {
+      connection: redisConnection,
+      concurrency: 5,
+    }
+  );
+
+  matchingWorker.on('failed', (job, err) => {
+    console.error(`[Matching Worker] Job ${job?.id} failed:`, err.message);
+  });
+
+  return matchingWorker;
+}
+
+/**
+ * Gracefully shuts down matching queue and worker.
+ */
+async function closeMatchingQueue() {
+  if (matchingWorker) {
+    await matchingWorker.close();
+    matchingWorker = null;
+  }
+  if (matchingQueue) {
+    await matchingQueue.close();
+    matchingQueue = null;
+  }
+}
+
+module.exports = {
+  MATCHING_QUEUE_NAME,
+  getMatchingQueue,
+  startMatchingWorker,
+  closeMatchingQueue,
+  processRunWave,
+  processExpandWave,
+  processExpireRequest,
+  scheduleRequestExpiry,
+};

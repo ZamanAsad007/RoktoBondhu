@@ -1,4 +1,5 @@
 const bloodRequestRepository = require('../repositories/bloodRequestRepository');
+const matchingRepository = require('../repositories/matchingRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
 const userRepository = require('../repositories/userRepository');
 const db = require('../config/db');
@@ -7,6 +8,11 @@ const {
   transitionRequest,
   REQUEST_STATUSES,
 } = require('../domain/requestStateMachine');
+const {
+  getMatchingQueue,
+  processRunWave,
+  scheduleRequestExpiry,
+} = require('../jobs/matchingQueue');
 
 const MAX_DAILY_REQUESTS = 3;
 
@@ -118,7 +124,34 @@ class BloodRequestService {
       },
     });
 
+    // 6. Trigger first wave and schedule expiration
+    try {
+      const queue = getMatchingQueue();
+      await queue.add('run-wave', { requestId: newRequest.id });
+      await scheduleRequestExpiry(newRequest.id, expiresAt);
+
+      // In test mode, process first wave immediately for synchronous assertions
+      if (process.env.NODE_ENV === 'test') {
+        await processRunWave(newRequest.id);
+      }
+    } catch (queueErr) {
+      console.error('[MatchingQueue] Failed to enqueue wave job:', queueErr.message);
+    }
+
     return newRequest;
+  }
+
+  /**
+   * Finds open compatible blood requests nearby for an authenticated donor.
+   */
+  async getNearbyRequestsForDonor(currentUser, { radiusKm = 10, limit = 20 } = {}) {
+    const parsedRadius = parseFloat(radiusKm) || 10;
+    const parsedLimit = parseInt(limit, 10) || 20;
+    return matchingRepository.findNearbyOpenRequestsForDonor({
+      donorUserId: currentUser.id,
+      radiusKm: parsedRadius,
+      limit: parsedLimit,
+    });
   }
 
   /**
