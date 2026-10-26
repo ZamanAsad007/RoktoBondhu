@@ -301,6 +301,84 @@ class BloodRequestService {
       client.release();
     }
   }
+
+  /**
+   * Requester confirms that a donation occurred.
+   */
+  async confirmDonation(requestId, matchId, currentUser) {
+    const request = await bloodRequestRepository.findById(requestId);
+    if (!request) {
+      const err = new Error('Blood request not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const isRequester = currentUser && currentUser.id === request.requester_id;
+    const isAdmin = currentUser && currentUser.role === 'ADMIN';
+    if (!isRequester && !isAdmin) {
+      const err = new Error('Forbidden: Only the requester can confirm donations');
+      err.status = 403;
+      throw err;
+    }
+
+    const match = await matchRepository.findById(matchId);
+    if (!match || match.request_id !== requestId) {
+      const err = new Error('Match invitation not found for this request');
+      err.status = 404;
+      throw err;
+    }
+
+    if (match.status !== 'ACCEPTED') {
+      const err = new Error(
+        `Cannot confirm donation for match in status "${match.status}". Only accepted donors can be confirmed.`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    const client = await db.getClient();
+    try {
+      await client.query('BEGIN');
+
+      // Update match status to DONATED
+      await matchRepository.updateMatchStatus(matchId, 'DONATED', client);
+
+      // Record donation row
+      const insDonationQuery = `
+        INSERT INTO donations (request_id, donor_id, donated_at, confirmed_by_requester)
+        VALUES ($1, $2, NOW(), TRUE)
+        RETURNING *
+      `;
+      const donationRes = await client.query(insDonationQuery, [requestId, match.donor_id]);
+      const donation = donationRes.rows[0];
+
+      // Update donor profile's last_donated_at
+      await client.query(
+        `UPDATE donor_profiles SET last_donated_at = NOW() WHERE user_id = $1`,
+        [match.donor_id]
+      );
+
+      // Record audit log
+      await auditLogRepository.log(
+        {
+          actorId: currentUser.id,
+          action: 'DONATION_CONFIRMED',
+          entity: 'donations',
+          entityId: donation.id,
+          metadata: { request_id: requestId, donor_id: match.donor_id },
+        },
+        client
+      );
+
+      await client.query('COMMIT');
+      return donation;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
 }
 
 module.exports = {
