@@ -26,6 +26,11 @@ function errorHandler(err, req, res, next) {
     return sendError(res, 'Referenced resource does not exist', 400);
   }
 
+  // PostgreSQL deadlock / serialization conflict
+  if (err.code === '40P01' || err.code === '40001') {
+    return sendError(res, 'Conflict: Request has already been fulfilled or conflicting updates occurred', 409);
+  }
+
   // Custom application error with statusCode or status
   const statusCode = err.statusCode || err.status;
   if (statusCode) {
