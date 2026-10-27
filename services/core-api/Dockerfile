@@ -18,7 +18,6 @@ RUN apk add --no-cache wget
 
 # Copy installed dependencies and source code
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/services/core-api/node_modules ./services/core-api/node_modules
 COPY services/core-api ./services/core-api
 COPY package.json ./
 
