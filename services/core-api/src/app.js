@@ -9,6 +9,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const donorStatsController = require('./controllers/donorStatsController');
+const bloodRequestController = require('./controllers/bloodRequestController');
 const { requireAuth, requireRole } = require('./middleware/auth');
 const userRepository = require('./repositories/userRepository');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
@@ -35,6 +36,7 @@ app.get('/health', (req, res) => {
 });
 
 // Mount Routes
+app.get('/s/:shareToken', bloodRequestController.renderSharePage);
 app.get('/api/leaderboard', donorStatsController.getLeaderboard);
 app.get('/api/donations/:id/certificate', requireAuth, donorStatsController.downloadCertificate);
 

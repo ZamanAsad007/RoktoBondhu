@@ -17,6 +17,10 @@ import {
   ArrowLeft,
   Calendar,
   Flag,
+  Share2,
+  Copy,
+  Check,
+  Flame,
 } from 'lucide-react';
 import ReportModal from '../components/ReportModal';
 
@@ -28,6 +32,21 @@ export default function RequestDetail() {
 
   const [feedback, setFeedback] = useState({ type: '', message: '' });
   const [showReportModal, setShowReportModal] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
+
+  // Escalate to SOS Mutation
+  const escalateMutation = useMutation({
+    mutationFn: () => api.escalateRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bloodRequest', id] });
+      queryClient.invalidateQueries({ queryKey: ['myRequests'] });
+      setFeedback({ type: 'success', message: 'Request escalated to CRITICAL SOS! Search radius expanded.' });
+      setTimeout(() => setFeedback({ type: '', message: '' }), 8000);
+    },
+    onError: (err) => {
+      setFeedback({ type: 'error', message: err.message || 'Could not escalate request.' });
+    },
+  });
 
   // Fetch Request Details
   const {
@@ -72,6 +91,23 @@ export default function RequestDetail() {
   function handleCancel() {
     if (window.confirm('Are you sure you want to cancel this blood request? Pending donor notifications will be withdrawn.')) {
       cancelMutation.mutate();
+    }
+  }
+
+  function handleEscalate() {
+    if (window.confirm('Escalate to CRITICAL SOS? This will widen the matching radius immediately and accelerate alerts.')) {
+      escalateMutation.mutate();
+    }
+  }
+
+  function handleCopyShare() {
+    if (request?.share_token) {
+      const publicUrl = `${window.location.origin}/s/${request.share_token}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(publicUrl);
+        setCopiedShare(true);
+        setTimeout(() => setCopiedShare(false), 2500);
+      }
     }
   }
 
@@ -133,6 +169,30 @@ export default function RequestDetail() {
         </div>
       )}
 
+      {request.is_sos && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
+            color: '#ffffff',
+            padding: '14px 20px',
+            borderRadius: 'var(--radius)',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: '0 4px 12px rgba(185, 28, 28, 0.3)',
+          }}
+        >
+          <AlertTriangle size={26} color="#fde047" />
+          <div>
+            <strong style={{ fontSize: '1rem', letterSpacing: '0.02em' }}>CRITICAL SOS ESCALATION ACTIVE</strong>
+            <p style={{ fontSize: '0.82rem', margin: '2px 0 0', opacity: 0.9 }}>
+              Search radius expanded to 25+ km. Accelerated emergency waves active.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Main Request Header Card */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
@@ -169,7 +229,31 @@ export default function RequestDetail() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {request.share_token && (
+              <button
+                onClick={handleCopyShare}
+                className="btn btn-secondary btn-sm"
+                title="Copy public emergency share link"
+              >
+                {copiedShare ? <Check size={16} color="#16a34a" /> : <Share2 size={16} />}
+                <span>{copiedShare ? 'Copied Public Link!' : 'Share'}</span>
+              </button>
+            )}
+
+            {canCancel && !request.is_sos && (
+              <button
+                onClick={handleEscalate}
+                disabled={escalateMutation.isPending}
+                className="btn btn-primary btn-sm"
+                style={{ background: '#b91c1c' }}
+                title="Escalate to CRITICAL SOS"
+              >
+                <Flame size={16} />
+                <span>{escalateMutation.isPending ? 'Escalating...' : 'Escalate to SOS'}</span>
+              </button>
+            )}
+
             {canCancel && (
               <button
                 onClick={handleCancel}
@@ -177,7 +261,7 @@ export default function RequestDetail() {
                 className="btn btn-danger btn-sm"
               >
                 <XCircle size={16} />
-                <span>{cancelMutation.isPending ? 'Cancelling...' : 'Cancel Request'}</span>
+                <span>{cancelMutation.isPending ? 'Cancelling...' : 'Cancel'}</span>
               </button>
             )}
 

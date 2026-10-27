@@ -18,6 +18,7 @@ import NotificationsInbox from './pages/NotificationsInbox';
 import AdminDashboard from './pages/AdminDashboard';
 import DonorStats from './pages/DonorStats';
 import Leaderboard from './pages/Leaderboard';
+import PublicSharePage from './pages/PublicSharePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ export default function App() {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/s/:shareToken" element={<PublicSharePage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
