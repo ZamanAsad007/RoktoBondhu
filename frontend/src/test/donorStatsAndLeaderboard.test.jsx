@@ -12,6 +12,12 @@ vi.mock('../api/client', async () => {
   const actual = await vi.importActual('../api/client');
   return {
     ...actual,
+    tokenStorage: {
+      getAccessToken: vi.fn(() => null),
+      getRefreshToken: vi.fn(() => null),
+      setTokens: vi.fn(),
+      clearTokens: vi.fn(),
+    },
     api: {
       ...actual.api,
       get: vi.fn((url) => {

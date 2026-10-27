@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const crypto = require('crypto');
 
 class BloodRequestRepository {
   /**
@@ -17,6 +18,7 @@ class BloodRequestRepository {
     const neededBy = params.neededBy || params.needed_by;
     const contactPhone = params.contactPhone || params.contact_phone;
     const expiresAt = params.expiresAt || params.expires_at;
+    const shareToken = params.shareToken || params.share_token || crypto.randomBytes(6).toString('hex');
 
     const text = `
       INSERT INTO blood_requests (
@@ -31,11 +33,12 @@ class BloodRequestRepository {
         needed_by,
         contact_phone,
         status,
-        expires_at
+        expires_at,
+        share_token
       ) VALUES (
         $1, $2, $3, $4, $5,
         ST_SetSRID(ST_MakePoint($7, $6), 4326)::geography,
-        $8, $9, $10, $11, 'OPEN', $12
+        $8, $9, $10, $11, 'OPEN', $12, $13
       )
       RETURNING
         id,
@@ -54,7 +57,10 @@ class BloodRequestRepository {
         current_radius_km,
         wave_number,
         created_at,
-        expires_at
+        expires_at,
+        share_token,
+        is_sos,
+        escalated_at
     `;
 
     const values = [
@@ -70,6 +76,7 @@ class BloodRequestRepository {
       neededBy,
       contactPhone,
       expiresAt,
+      shareToken,
     ];
 
     const res = await db.query(text, values);
@@ -99,6 +106,9 @@ class BloodRequestRepository {
         r.wave_number,
         r.created_at,
         r.expires_at,
+        r.share_token,
+        r.is_sos,
+        r.escalated_at,
         u.name AS requester_name,
         u.phone AS requester_phone,
         COALESCE(SUM(CASE WHEN m.status = 'ACCEPTED' THEN 1 ELSE 0 END), 0)::int AS accepted_count,
@@ -232,6 +242,54 @@ class BloodRequestRepository {
     `;
     const res = await db.query(text, [requestId]);
     return res.rows;
+  }
+
+  /**
+   * Retrieves safe public details for a request by share token.
+   * EXCLUDES patient name, contact phone, and exact coordinates.
+   */
+  async findByShareToken(shareToken) {
+    const text = `
+      SELECT
+        r.id,
+        r.blood_group,
+        r.units_needed,
+        r.hospital_name,
+        r.city,
+        r.urgency,
+        r.status,
+        r.is_sos,
+        r.escalated_at,
+        r.share_token,
+        r.needed_by,
+        r.expires_at,
+        r.created_at,
+        COALESCE(SUM(CASE WHEN m.status = 'ACCEPTED' THEN 1 ELSE 0 END), 0)::int AS accepted_count
+      FROM blood_requests r
+      LEFT JOIN request_matches m ON m.request_id = r.id
+      WHERE r.share_token = $1
+      GROUP BY r.id
+    `;
+    const res = await db.query(text, [shareToken]);
+    return res.rows[0] || null;
+  }
+
+  /**
+   * Mark a request as escalated to SOS emergency.
+   */
+  async escalateToSos(requestId, client = null) {
+    const dbClient = client || db;
+    const text = `
+      UPDATE blood_requests
+      SET 
+        is_sos = TRUE,
+        urgency = 'CRITICAL',
+        escalated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+    const res = await dbClient.query(text, [requestId]);
+    return res.rows[0] || null;
   }
 }
 

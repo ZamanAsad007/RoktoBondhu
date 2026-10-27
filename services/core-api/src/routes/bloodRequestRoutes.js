@@ -32,4 +32,10 @@ router.post(
   bloodRequestController.confirmDonation
 );
 
+// Escalate request to SOS emergency
+router.post('/:id/escalate', requireAuth, bloodRequestController.escalate);
+
+// Public share token JSON lookup
+router.get('/share/:shareToken', bloodRequestController.getByShareToken);
+
 module.exports = router;

@@ -117,6 +117,13 @@ async function parseResponse(response) {
 
 // API Endpoints abstraction
 export const api = {
+  // Generic HTTP methods
+  get: (endpoint, options = {}) => apiClient(endpoint, { method: 'GET', ...options }),
+  post: (endpoint, body = {}, options = {}) =>
+    apiClient(endpoint, { method: 'POST', body: JSON.stringify(body), ...options }),
+  put: (endpoint, body = {}, options = {}) =>
+    apiClient(endpoint, { method: 'PUT', body: JSON.stringify(body), ...options }),
+
   // Auth
   register: (body) => apiClient('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   login: (body) => apiClient('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
@@ -143,6 +150,7 @@ export const api = {
   getMyRequests: (params = '') => apiClient(`/requests/mine${params ? `?${params}` : ''}`),
   getRequestById: (id) => apiClient(`/requests/${id}`),
   cancelBloodRequest: (id) => apiClient(`/requests/${id}/cancel`, { method: 'POST' }),
+  escalateRequest: (id) => apiClient(`/requests/${id}/escalate`, { method: 'POST' }),
   confirmDonation: (requestId, matchId) =>
     apiClient(`/requests/${requestId}/matches/${matchId}/confirm-donation`, { method: 'POST' }),
 

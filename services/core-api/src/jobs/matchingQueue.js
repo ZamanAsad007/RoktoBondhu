@@ -324,6 +324,26 @@ async function closeMatchingQueue() {
   await notificationQueue.closeNotificationQueue();
 }
 
+/**
+ * Escalates a request to SOS: widens radius immediately to 25km+ and dispatches matching wave.
+ */
+async function processEscalateRequest(requestId) {
+  const request = await bloodRequestRepository.findById(requestId);
+  if (!request) {
+    return { status: 'NOT_FOUND' };
+  }
+
+  const sosRadius = Math.max(request.current_radius_km || 5, 25);
+  const nextWave = (request.wave_number || 1) + 1;
+
+  await matchingRepository.updateWaveProgress(requestId, {
+    currentRadiusKm: sosRadius,
+    waveNumber: nextWave,
+  });
+
+  return await processRunWave(requestId);
+}
+
 module.exports = {
   MATCHING_QUEUE_NAME,
   getMatchingQueue,
@@ -332,5 +352,6 @@ module.exports = {
   processRunWave,
   processExpandWave,
   processExpireRequest,
+  processEscalateRequest,
   scheduleRequestExpiry,
 };

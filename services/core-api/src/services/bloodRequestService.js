@@ -14,6 +14,7 @@ const {
 const {
   getMatchingQueue,
   processRunWave,
+  processEscalateRequest,
   scheduleRequestExpiry,
 } = require('../jobs/matchingQueue');
 
@@ -397,6 +398,71 @@ class BloodRequestService {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Escalate request to SOS emergency:
+   * Widens radius, speeds up waves, and marks with SOS flag.
+   */
+  async escalateRequest(requestId, currentUser) {
+    const request = await bloodRequestRepository.findById(requestId);
+    if (!request) {
+      const err = new Error('Blood request not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const isRequester = currentUser && currentUser.id === request.requester_id;
+    const isAdmin = currentUser && currentUser.role === 'ADMIN';
+    if (!isRequester && !isAdmin) {
+      const err = new Error('Forbidden: Only the requester or admin can escalate this request');
+      err.status = 403;
+      throw err;
+    }
+
+    if (
+      request.status !== REQUEST_STATUSES.OPEN &&
+      request.status !== REQUEST_STATUSES.PARTIALLY_FULFILLED
+    ) {
+      const err = new Error(`Cannot escalate request in status "${request.status}"`);
+      err.status = 400;
+      throw err;
+    }
+
+    // Rate-limiting check: can only escalate once every 15 minutes
+    if (request.is_sos && request.escalated_at) {
+      const msSinceEscalated = Date.now() - new Date(request.escalated_at).getTime();
+      const minIntervalMs = 15 * 60 * 1000;
+      if (msSinceEscalated < minIntervalMs) {
+        const remainingMinutes = Math.ceil((minIntervalMs - msSinceEscalated) / 60000);
+        const err = new Error(
+          `SOS escalation is rate-limited. Please wait ${remainingMinutes} more minute(s).`
+        );
+        err.status = 429;
+        throw err;
+      }
+    }
+
+    // Update in DB
+    const updated = await bloodRequestRepository.escalateToSos(requestId);
+
+    // Audit log
+    await auditLogRepository.log({
+      actorId: currentUser.id,
+      action: 'REQUEST_ESCALATED',
+      entity: 'blood_requests',
+      entityId: requestId,
+      metadata: {
+        is_sos: true,
+        previous_urgency: request.urgency,
+        escalated_at: updated.escalated_at,
+      },
+    });
+
+    // Trigger immediate wider wave
+    await processEscalateRequest(requestId);
+
+    return updated;
   }
 }
 
