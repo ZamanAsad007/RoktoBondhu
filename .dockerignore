@@ -1,0 +1,12 @@
+node_modules
+services/*/node_modules
+frontend/node_modules
+.git
+.github
+dist
+frontend/dist
+coverage
+.env
+.env.*
+!.env.example
+*.log

@@ -14,7 +14,6 @@ ENV NODE_ENV=production
 
 # Copy installed dependencies and source code
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/services/notification-service/node_modules ./services/notification-service/node_modules
 COPY services/notification-service ./services/notification-service
 COPY package.json ./
 
