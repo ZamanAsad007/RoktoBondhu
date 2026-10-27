@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useLiveUpdates } from '../hooks/useLiveUpdates';
 import {
   Droplet,
   MapPin,
@@ -48,6 +49,9 @@ export default function RequestDetail() {
     },
   });
 
+  // Live SSE stream updates replacing polling
+  const { isConnected: isLive, pollingInterval } = useLiveUpdates({ requestId: id });
+
   // Fetch Request Details
   const {
     data: request,
@@ -59,7 +63,7 @@ export default function RequestDetail() {
       const res = await api.getRequestById(id);
       return res.data?.request || res.data || null;
     },
-    refetchInterval: 8000, // Poll every 8s while viewer is monitoring active waves
+    refetchInterval: pollingInterval, // Dynamic: disabled when SSE live, fallback when disconnected
   });
 
   // Cancel Request Mutation
@@ -221,6 +225,30 @@ export default function RequestDetail() {
                 }}
               >
                 {request.status}
+              </span>
+              <span
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: isLive ? '#dcfce7' : '#f1f5f9',
+                  color: isLive ? '#15803d' : '#64748b',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+                title={isLive ? 'Real-time updates active via SSE' : 'Polling mode active'}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: isLive ? '#22c55e' : '#94a3b8',
+                  }}
+                />
+                {isLive ? 'Live' : 'Polling'}
               </span>
             </div>
             <h1 style={{ fontSize: '1.6rem', fontWeight: 800 }}>{request.hospital_name}</h1>

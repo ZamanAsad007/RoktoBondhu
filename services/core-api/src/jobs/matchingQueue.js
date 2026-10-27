@@ -5,6 +5,7 @@ const bloodRequestRepository = require('../repositories/bloodRequestRepository')
 const matchingRepository = require('../repositories/matchingRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
 const notificationQueue = require('./notificationQueue');
+const sseService = require('../services/sseService');
 const { REQUEST_STATUSES } = require('../domain/requestStateMachine');
 
 const redisConnection = {
@@ -86,6 +87,29 @@ async function processRunWave(requestId) {
     }));
 
     createdMatches = await matchingRepository.createMatchesBatch(matchPayloads);
+
+    // Real-time SSE event for matched donors (match.new)
+    for (const match of createdMatches) {
+      sseService
+        .publishEvent(
+          'match.new',
+          {
+            matchId: match.id,
+            requestId: request.id,
+            bloodGroup: request.blood_group,
+            unitsNeeded: request.units_needed,
+            hospitalName: request.hospital_name,
+            urgency: request.urgency,
+            neededBy: request.needed_by,
+            distanceKm: match.distance_km,
+          },
+          {
+            targetUserIds: [match.donor_id],
+            targetRequestId: request.id,
+          }
+        )
+        .catch((err) => console.error('[Matching Queue] SSE publish match.new error:', err.message));
+    }
 
     // Enqueue notifications for matched donors
     for (const donor of eligibleDonors) {
@@ -225,6 +249,24 @@ async function processExpireRequest(requestId) {
   ) {
     await bloodRequestRepository.updateStatus(requestId, REQUEST_STATUSES.EXPIRED);
     await matchingRepository.expirePendingMatches(requestId);
+
+    // Real-time SSE event for requester (request.expired)
+    sseService
+      .publishEvent(
+        'request.expired',
+        {
+          requestId: request.id,
+          patientName: request.patient_name,
+          bloodGroup: request.blood_group,
+          hospitalName: request.hospital_name,
+          status: 'EXPIRED',
+        },
+        {
+          targetUserIds: [request.requester_id],
+          targetRequestId: request.id,
+        }
+      )
+      .catch((err) => console.error('[Matching Queue] SSE publish request.expired error:', err.message));
 
     await auditLogRepository.log({
       actorId: null,

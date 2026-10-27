@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useLiveUpdates } from '../hooks/useLiveUpdates';
 import {
   Heart,
   Droplet,
@@ -20,6 +21,9 @@ export default function DonorFeed() {
   const [activeTab, setActiveTab] = useState('notified'); // 'notified' | 'accepted' | 'all' | 'nearby'
   const [actionFeedback, setActionFeedback] = useState({ type: '', message: '' });
 
+  // SSE live updates replacing polling
+  const { isConnected: isLive, pollingInterval } = useLiveUpdates({ fallbackInterval: 15000 });
+
   // Query donor matches
   const {
     data: matches = [],
@@ -31,7 +35,7 @@ export default function DonorFeed() {
       const res = await api.getMyMatches();
       return res.data?.matches || res.data || [];
     },
-    refetchInterval: 15000, // Poll every 15s for new wave alerts
+    refetchInterval: pollingInterval, // Dynamic: disabled when SSE live, fallback when disconnected
   });
 
   // Query nearby open requests

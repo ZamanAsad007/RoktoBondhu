@@ -3,6 +3,7 @@ const config = require('./config');
 const { runMigrations } = require('./db/migrate');
 const { pool } = require('./config/db');
 const redis = require('./config/redis');
+const sseService = require('./services/sseService');
 
 async function startServer() {
   try {
@@ -13,6 +14,9 @@ async function startServer() {
     await redis.ping();
     console.log('[Server] Redis connected.');
 
+    // Initialize Redis pub/sub subscriber for SSE fan-out
+    sseService.initSubscriber();
+
     const server = app.listen(config.port, () => {
       console.log(`[Server] Core API service listening on port ${config.port} (${config.env})`);
     });
@@ -21,6 +25,7 @@ async function startServer() {
       console.log('[Server] Shutting down gracefully...');
       server.close(async () => {
         try {
+          await sseService.cleanup();
           await pool.end();
           await redis.quit();
           console.log('[Server] Database and Redis connections closed.');

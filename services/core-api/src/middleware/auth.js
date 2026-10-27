@@ -4,12 +4,17 @@ const { sendError } = require('../utils/response');
 
 async function requireAuth(req, res, next) {
   try {
+    let token;
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return sendError(res, 'Authentication required', 401);
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
     }
 
-    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return sendError(res, 'Authentication required', 401);
+    }
     let decoded;
     try {
       decoded = verifyAccessToken(token);

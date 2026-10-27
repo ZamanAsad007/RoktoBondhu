@@ -2,6 +2,7 @@ const matchRepository = require('../repositories/matchRepository');
 const bloodRequestRepository = require('../repositories/bloodRequestRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
 const notificationQueue = require('../jobs/notificationQueue');
+const sseService = require('./sseService');
 const db = require('../config/db');
 const { maskPhoneNumber } = require('./bloodRequestService');
 const { REQUEST_STATUSES } = require('../domain/requestStateMachine');
@@ -166,6 +167,28 @@ class MatchService {
 
       // Post-commit notification side-effects (non-blocking)
       try {
+        // SSE Real-time Updates: match.accepted
+        sseService
+          .publishEvent(
+            'match.accepted',
+            {
+              requestId: request.id,
+              matchId,
+              donorId: currentUser.id,
+              donorName: currentUser.name,
+              patientName: request.patient_name,
+              hospitalName: request.hospital_name,
+              unitsNeeded: request.units_needed,
+              acceptedCount: newAcceptedCount,
+              isFulfilled,
+            },
+            {
+              targetUserIds: [request.requester_id, currentUser.id],
+              targetRequestId: request.id,
+            }
+          )
+          .catch((err) => console.error('[MatchService] SSE publish match.accepted error:', err.message));
+
         // 1. Notify requester that donor accepted
         await notificationQueue.enqueueNotification({
           type: 'donor.accepted',
@@ -204,6 +227,25 @@ class MatchService {
           const allUserIds = Array.from(
             new Set([request.requester_id, ...acceptedMatches.map((m) => m.donor_id)])
           );
+
+          // SSE Real-time Updates: request.fulfilled
+          sseService
+            .publishEvent(
+              'request.fulfilled',
+              {
+                requestId: request.id,
+                patientName: request.patient_name,
+                bloodGroup: request.blood_group,
+                hospitalName: request.hospital_name,
+                unitsNeeded: request.units_needed,
+                status: 'FULFILLED',
+              },
+              {
+                targetUserIds: allUserIds,
+                targetRequestId: request.id,
+              }
+            )
+            .catch((err) => console.error('[MatchService] SSE publish request.fulfilled error:', err.message));
 
           for (const uid of allUserIds) {
             await notificationQueue.enqueueNotification({
