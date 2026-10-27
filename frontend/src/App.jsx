@@ -16,6 +16,8 @@ import MyRequests from './pages/MyRequests';
 import RequestDetail from './pages/RequestDetail';
 import NotificationsInbox from './pages/NotificationsInbox';
 import AdminDashboard from './pages/AdminDashboard';
+import DonorStats from './pages/DonorStats';
+import Leaderboard from './pages/Leaderboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,16 +37,25 @@ export default function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
 
-              {/* Protected Donor Routes (Phase 8) */}
+              {/* Protected Donor Routes (Phase 8 & Phase 14) */}
               <Route
                 path="/donor/profile"
                 element={
                   <ProtectedRoute>
                     <DonorProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/donor/stats"
+                element={
+                  <ProtectedRoute>
+                    <DonorStats />
                   </ProtectedRoute>
                 }
               />

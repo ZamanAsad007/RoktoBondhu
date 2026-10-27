@@ -3,6 +3,7 @@ const matchingRepository = require('../repositories/matchingRepository');
 const matchRepository = require('../repositories/matchRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
 const userRepository = require('../repositories/userRepository');
+const donorStatsRepository = require('../repositories/donorStatsRepository');
 const notificationQueue = require('../jobs/notificationQueue');
 const db = require('../config/db');
 const {
@@ -358,6 +359,19 @@ class BloodRequestService {
         [match.donor_id]
       );
 
+      // Update donor stats, streaks, next eligible date, and award badges
+      const statsUpdate = await donorStatsRepository.recordDonationConfirmed({
+        userId: match.donor_id,
+        donationId: donation.id,
+        requestId,
+        match: {
+          ...match,
+          request_urgency: request.urgency,
+        },
+        client,
+      });
+      donation.certificate_no = statsUpdate.certificateNo;
+
       // Record audit log
       await auditLogRepository.log(
         {
@@ -365,7 +379,12 @@ class BloodRequestService {
           action: 'DONATION_CONFIRMED',
           entity: 'donations',
           entityId: donation.id,
-          metadata: { request_id: requestId, donor_id: match.donor_id },
+          metadata: { 
+            request_id: requestId, 
+            donor_id: match.donor_id,
+            certificate_no: statsUpdate.certificateNo,
+            badges_awarded: statsUpdate.newBadges?.map(b => b.code) || []
+          },
         },
         client
       );
