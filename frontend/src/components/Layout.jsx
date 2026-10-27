@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   LogIn,
   UserPlus,
+  Trophy,
+  Award,
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -36,11 +38,19 @@ export default function Layout({ children }) {
           </Link>
 
           <nav className="nav-links desktop-only">
+            <NavLink to="/leaderboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <Trophy size={18} />
+              <span>Leaderboard</span>
+            </NavLink>
             {isAuthenticated ? (
               <>
                 <NavLink to="/donor/feed" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Heart size={18} />
                   <span>Donor Feed</span>
+                </NavLink>
+                <NavLink to="/donor/stats" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <Award size={18} />
+                  <span>Badges & Stats</span>
                 </NavLink>
                 <NavLink to="/donor/profile" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <User size={18} />

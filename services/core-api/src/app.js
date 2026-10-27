@@ -8,6 +8,7 @@ const matchRoutes = require('./routes/matchRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const donorStatsController = require('./controllers/donorStatsController');
 const { requireAuth, requireRole } = require('./middleware/auth');
 const userRepository = require('./repositories/userRepository');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
@@ -34,6 +35,9 @@ app.get('/health', (req, res) => {
 });
 
 // Mount Routes
+app.get('/api/leaderboard', donorStatsController.getLeaderboard);
+app.get('/api/donations/:id/certificate', requireAuth, donorStatsController.downloadCertificate);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/donors', donorRoutes);
 app.use('/api/requests', bloodRequestRoutes);
