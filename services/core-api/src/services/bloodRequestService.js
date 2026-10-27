@@ -5,6 +5,7 @@ const auditLogRepository = require('../repositories/auditLogRepository');
 const userRepository = require('../repositories/userRepository');
 const donorStatsRepository = require('../repositories/donorStatsRepository');
 const notificationQueue = require('../jobs/notificationQueue');
+const sseService = require('./sseService');
 const db = require('../config/db');
 const {
   canTransitionRequest,
@@ -276,6 +277,22 @@ class BloodRequestService {
 
       await client.query('COMMIT');
 
+      // Real-time SSE event for cancellation
+      sseService
+        .publishEvent(
+          'request.cancelled',
+          {
+            requestId: request.id,
+            status: REQUEST_STATUSES.CANCELLED,
+            patientName: request.patient_name,
+          },
+          {
+            targetUserIds: [request.requester_id, ...acceptedMatches.map((m) => m.donor_id)],
+            targetRequestId: request.id,
+          }
+        )
+        .catch((err) => console.error('[BloodRequestService] SSE publish cancel error:', err.message));
+
       // Post-commit notify accepted donors
       for (const m of acceptedMatches) {
         try {
@@ -458,6 +475,24 @@ class BloodRequestService {
         escalated_at: updated.escalated_at,
       },
     });
+
+    // Real-time SSE event for SOS escalation
+    sseService
+      .publishEvent(
+        'request.escalated',
+        {
+          requestId: updated.id,
+          isSos: true,
+          urgency: updated.urgency,
+          escalatedAt: updated.escalated_at,
+          patientName: updated.patient_name,
+        },
+        {
+          targetUserIds: [updated.requester_id],
+          targetRequestId: updated.id,
+        }
+      )
+      .catch((err) => console.error('[BloodRequestService] SSE publish escalate error:', err.message));
 
     // Trigger immediate wider wave
     await processEscalateRequest(requestId);
