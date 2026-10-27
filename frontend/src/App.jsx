@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -33,9 +34,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <Layout>
-            <Routes>
+        <ToastProvider>
+          <Router>
+            <Layout>
+              <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
@@ -119,7 +121,8 @@ export default function App() {
             </Routes>
           </Layout>
         </Router>
-      </AuthProvider>
-    </QueryClientProvider>
-  );
+      </ToastProvider>
+    </AuthProvider>
+  </QueryClientProvider>
+);
 }

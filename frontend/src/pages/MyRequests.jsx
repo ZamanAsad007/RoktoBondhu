@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useLiveUpdates } from '../hooks/useLiveUpdates';
 import {
   List,
   PlusCircle,
@@ -14,6 +15,8 @@ import {
 } from 'lucide-react';
 
 export default function MyRequests() {
+  const { isConnected: isLive, pollingInterval } = useLiveUpdates({ fallbackInterval: 10000 });
+
   const {
     data: requests = [],
     isLoading,
@@ -24,7 +27,7 @@ export default function MyRequests() {
       const res = await api.getMyRequests();
       return res.data?.requests || res.data || [];
     },
-    refetchInterval: 10000,
+    refetchInterval: pollingInterval,
   });
 
   return (
