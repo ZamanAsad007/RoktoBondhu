@@ -93,11 +93,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate Docker Compose Configuration
+        run: docker compose config
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Core API Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: services/core-api/Dockerfile
@@ -105,7 +108,7 @@ jobs:
           tags: roktobondhu-core-api:ci
 
       - name: Build Notification Service Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: services/notification-service/Dockerfile
@@ -113,7 +116,7 @@ jobs:
           tags: roktobondhu-notification-service:ci
 
       - name: Build Frontend Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: frontend/Dockerfile
@@ -121,9 +124,12 @@ jobs:
           tags: roktobondhu-frontend:ci
 
       - name: Build Gateway Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: gateway/Dockerfile
           push: false
           tags: roktobondhu-gateway:ci
+
+      - name: Verify Docker Compose Build
+        run: docker compose build
