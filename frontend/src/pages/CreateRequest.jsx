@@ -13,7 +13,9 @@ import {
   Phone,
   PlusCircle,
   AlertCircle,
+  Building2,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -86,6 +88,14 @@ export default function CreateRequest() {
         <p style={{ color: 'var(--text-muted)' }}>
           Broadcast your need to compatible, eligible donors within increasing radius waves.
         </p>
+        <div style={{ marginTop: 10, padding: '10px 14px', background: '#eef2ff', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#3730a3' }}>
+            <Building2 size={16} /> Need instant units? Check blood bank stocks nearby first.
+          </span>
+          <Link to="/blood-banks" style={{ color: '#4338ca', fontWeight: 700, textDecoration: 'none' }}>
+            View Blood Banks &rarr;
+          </Link>
+        </div>
       </div>
 
       {error && (

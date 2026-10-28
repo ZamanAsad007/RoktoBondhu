@@ -14,6 +14,8 @@ import {
   UserPlus,
   Trophy,
   Award,
+  Building2,
+  Calendar,
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -38,6 +40,14 @@ export default function Layout({ children }) {
           </Link>
 
           <nav className="nav-links desktop-only">
+            <NavLink to="/blood-banks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <Building2 size={18} />
+              <span>Blood Banks</span>
+            </NavLink>
+            <NavLink to="/drives" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <Calendar size={18} />
+              <span>Drives</span>
+            </NavLink>
             <NavLink to="/leaderboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               <Trophy size={18} />
               <span>Leaderboard</span>
@@ -64,6 +74,12 @@ export default function Layout({ children }) {
                   <PlusCircle size={18} />
                   <span>Request Blood</span>
                 </NavLink>
+                {(user?.role === 'ORG' || user?.role === 'ADMIN') && (
+                  <NavLink to="/org/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Building2 size={18} />
+                    <span>Org Center</span>
+                  </NavLink>
+                )}
                 {user?.role === 'ADMIN' && (
                   <NavLink to="/admin" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                     <ShieldCheck size={18} />
