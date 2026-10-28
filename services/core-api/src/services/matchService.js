@@ -169,14 +169,16 @@ class MatchService {
       // Post-commit notification side-effects (non-blocking)
       try {
         // Auto-create chat thread for accepted match (Phase 19)
-        chatRepository
-          .createThread({
+        try {
+          await chatRepository.createThread({
             requestId: request.id,
             matchId,
             requesterId: request.requester_id,
             donorId: currentUser.id,
-          })
-          .catch((err) => console.error('[MatchService] Auto-create chat thread error:', err.message));
+          });
+        } catch (chatErr) {
+          console.error('[MatchService] Auto-create chat thread error:', chatErr.message);
+        }
 
         // SSE Real-time Updates: match.accepted
         sseService

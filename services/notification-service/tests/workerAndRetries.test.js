@@ -32,6 +32,15 @@ describe('Worker, Retries, and Dead-Letter Handling', () => {
       RETURNING id
     `);
     testUserId = userRes.rows[0].id;
+
+    // Drain stale jobs from prior runs
+    try {
+      await testQueue.drain();
+      await testQueue.clean(0, 1000, 'delayed');
+      await testQueue.clean(0, 1000, 'wait');
+    } catch (e) {
+      // ignore
+    }
   });
 
   afterAll(async () => {
