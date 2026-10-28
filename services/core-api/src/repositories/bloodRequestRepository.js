@@ -109,6 +109,9 @@ class BloodRequestRepository {
         r.share_token,
         r.is_sos,
         r.escalated_at,
+        r.verification_document_url,
+        r.is_verified_request,
+        r.verified_at,
         u.name AS requester_name,
         u.phone AS requester_phone,
         COALESCE(SUM(CASE WHEN m.status = 'ACCEPTED' THEN 1 ELSE 0 END), 0)::int AS accepted_count,
@@ -260,6 +263,9 @@ class BloodRequestRepository {
         r.status,
         r.is_sos,
         r.escalated_at,
+        r.verification_document_url,
+        r.is_verified_request,
+        r.verified_at,
         r.share_token,
         r.needed_by,
         r.expires_at,
@@ -290,6 +296,50 @@ class BloodRequestRepository {
     `;
     const res = await dbClient.query(text, [requestId]);
     return res.rows[0] || null;
+  }
+
+  /**
+   * Attach verification document URL (Phase 18)
+   */
+  async attachVerificationDocument(requestId, documentUrl) {
+    const text = `
+      UPDATE blood_requests
+      SET verification_document_url = $1
+      WHERE id = $2
+      RETURNING *
+    `;
+    const res = await db.query(text, [documentUrl, requestId]);
+    return res.rows[0] || null;
+  }
+
+  /**
+   * Admin verify or reject blood request
+   */
+  async verifyRequest(requestId, adminUserId, isVerified = true) {
+    const text = `
+      UPDATE blood_requests
+      SET 
+        is_verified_request = $1,
+        verified_at = CASE WHEN $1 = TRUE THEN NOW() ELSE NULL END,
+        verified_by = CASE WHEN $1 = TRUE THEN $2::uuid ELSE NULL END
+      WHERE id = $3
+      RETURNING *
+    `;
+    const res = await db.query(text, [isVerified, adminUserId, requestId]);
+    return res.rows[0] || null;
+  }
+
+  /**
+   * Check if user has an approved verified request to bypass daily rate limit
+   */
+  async hasVerifiedRequestByUser(userId) {
+    const text = `
+      SELECT 1 FROM blood_requests
+      WHERE requester_id = $1 AND is_verified_request = TRUE
+      LIMIT 1
+    `;
+    const res = await db.query(text, [userId]);
+    return res.rows.length > 0;
   }
 }
 

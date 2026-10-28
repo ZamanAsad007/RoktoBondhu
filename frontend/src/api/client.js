@@ -138,6 +138,8 @@ export const api = {
   updateDonorProfile: (body) => apiClient('/donors/profile', { method: 'PUT', body: JSON.stringify(body) }),
   setDonorAvailability: (available) =>
     apiClient('/donors/availability', { method: 'PATCH', body: JSON.stringify({ available }) }),
+  updateAvailabilityWindows: (windows) =>
+    apiClient('/donors/me/availability-windows', { method: 'PUT', body: JSON.stringify({ windows }) }),
 
   // Matches / Donor Side
   getMyMatches: (params = '') => apiClient(`/matches/mine${params ? `?${params}` : ''}`),
@@ -151,6 +153,17 @@ export const api = {
   getRequestById: (id) => apiClient(`/requests/${id}`),
   cancelBloodRequest: (id) => apiClient(`/requests/${id}/cancel`, { method: 'POST' }),
   escalateRequest: (id) => apiClient(`/requests/${id}/escalate`, { method: 'POST' }),
+  uploadVerificationDocument: async (id, formData) => {
+    const token = tokenStorage.getAccessToken();
+    const res = await fetch(`/api/requests/${id}/verification-document`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    return parseResponse(res);
+  },
   confirmDonation: (requestId, matchId) =>
     apiClient(`/requests/${requestId}/matches/${matchId}/confirm-donation`, { method: 'POST' }),
 
@@ -165,6 +178,8 @@ export const api = {
   getAdminReports: () => apiClient('/admin/reports'),
   setBlockUser: (userId, isBlocked) =>
     apiClient(`/admin/users/${userId}/block`, { method: 'PATCH', body: JSON.stringify({ isBlocked }) }),
+  verifyRequest: (requestId, isVerified = true) =>
+    apiClient(`/admin/requests/${requestId}/verify`, { method: 'PATCH', body: JSON.stringify({ isVerified }) }),
   updateReportStatus: (reportId, status, resolutionNotes = null) =>
     apiClient(`/admin/reports/${reportId}`, {
       method: 'PATCH',

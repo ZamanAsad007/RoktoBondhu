@@ -28,6 +28,11 @@ coverage/
 dist/
 build/
 
+# Uploads
+uploads/
+services/core-api/uploads/*
+!services/core-api/uploads/**/.gitkeep
+
 # IDE and OS files
 .DS_Store
 Thumbs.db

@@ -304,6 +304,7 @@ export default function AdminDashboard() {
                     <th style={{ padding: '8px 10px' }}>Requester</th>
                     <th style={{ padding: '8px 10px' }}>Progress</th>
                     <th style={{ padding: '8px 10px' }}>Urgency</th>
+                    <th style={{ padding: '8px 10px' }}>Verification</th>
                     <th style={{ padding: '8px 10px' }}>Status</th>
                   </tr>
                 </thead>
@@ -317,6 +318,24 @@ export default function AdminDashboard() {
                       <td style={{ padding: '10px 10px' }}>{r.accepted_count} / {r.units_needed}</td>
                       <td style={{ padding: '10px 10px' }}>
                         <span className={`badge badge-${r.urgency ? r.urgency.toLowerCase() : 'normal'}`}>{r.urgency}</span>
+                      </td>
+                      <td style={{ padding: '10px 10px' }}>
+                        {r.is_verified_request ? (
+                          <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.8rem' }}>✓ Verified</span>
+                        ) : r.verification_document_url ? (
+                          <button
+                            onClick={async () => {
+                              await api.verifyRequest(r.id, true);
+                              queryClient.invalidateQueries(['adminRequests']);
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                          >
+                            Approve Slip
+                          </button>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Unverified</span>
+                        )}
                       </td>
                       <td style={{ padding: '10px 10px', fontWeight: 700 }}>{r.status}</td>
                     </tr>

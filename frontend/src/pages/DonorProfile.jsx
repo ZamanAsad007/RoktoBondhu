@@ -305,6 +305,58 @@ export default function DonorProfile() {
           <span>{updateProfileMutation.isPending ? 'Saving...' : 'Save Donor Profile'}</span>
         </button>
       </form>
+
+      {/* Weekly Availability Windows (Phase 18) */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <Clock size={18} color="var(--primary)" />
+          <span>Weekly Availability Windows</span>
+        </h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 16px 0' }}>
+          Specify preferred hours (e.g. evening hours when you are free from work/study). Smarter matching v2 prioritizes alerting you during your active availability windows.
+        </p>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+          {[
+            { label: 'Available 24/7 (Anytime)', windows: [] },
+            {
+              label: 'Evenings Only (18:00 - 22:00)',
+              windows: [
+                { day: 'sunday', start: '18:00', end: '22:00' },
+                { day: 'monday', start: '18:00', end: '22:00' },
+                { day: 'tuesday', start: '18:00', end: '22:00' },
+                { day: 'wednesday', start: '18:00', end: '22:00' },
+                { day: 'thursday', start: '18:00', end: '22:00' },
+                { day: 'friday', start: '18:00', end: '22:00' },
+                { day: 'saturday', start: '18:00', end: '22:00' },
+              ],
+            },
+            {
+              label: 'Weekends Only (Fri - Sat)',
+              windows: [
+                { day: 'friday', start: '08:00', end: '22:00' },
+                { day: 'saturday', start: '08:00', end: '22:00' },
+              ],
+            },
+          ].map((preset, idx) => (
+            <button
+              key={idx}
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={async () => {
+                try {
+                  await api.updateAvailabilityWindows(preset.windows);
+                  setFeedback({ type: 'success', message: `Availability window set to: ${preset.label}` });
+                } catch (err) {
+                  setFeedback({ type: 'error', message: err.message || 'Failed to update windows' });
+                }
+              }}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

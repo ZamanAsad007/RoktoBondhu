@@ -4,6 +4,7 @@ const bloodRequestController = require('../controllers/bloodRequestController');
 const { requireAuth } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
 const { createBloodRequestSchema } = require('../validation/bloodRequest');
+const { uploadVerificationDoc } = require('../middleware/upload');
 
 // Create blood request (rate limited, urgency expiry computed)
 router.post(
@@ -34,6 +35,14 @@ router.post(
 
 // Escalate request to SOS emergency
 router.post('/:id/escalate', requireAuth, bloodRequestController.escalate);
+
+// Upload hospital slip / verification document (Phase 18)
+router.post(
+  '/:id/verification-document',
+  requireAuth,
+  uploadVerificationDoc.single('document'),
+  bloodRequestController.uploadVerificationDocument
+);
 
 // Public share token JSON lookup
 router.get('/share/:shareToken', bloodRequestController.getByShareToken);

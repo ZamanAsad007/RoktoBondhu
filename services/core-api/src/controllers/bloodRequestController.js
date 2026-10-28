@@ -177,6 +177,41 @@ class BloodRequestController {
       next(err);
     }
   }
+
+  /**
+   * Upload hospital verification document / requisition slip (Phase 18)
+   */
+  async uploadVerificationDocument(req, res, next) {
+    try {
+      const { id } = req.params;
+      const updated = await bloodRequestService.uploadVerificationDocument(
+        req.user,
+        id,
+        req.file
+      );
+      return sendSuccess(res, { request: updated }, 200);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Admin verify request
+   */
+  async adminVerifyRequest(req, res, next) {
+    try {
+      const { id } = req.params;
+      const isVerified = req.body.isVerified !== undefined ? Boolean(req.body.isVerified) : true;
+      const updated = await bloodRequestService.reviewRequestVerification(
+        req.user,
+        id,
+        isVerified
+      );
+      return sendSuccess(res, { request: updated }, 200);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new BloodRequestController();

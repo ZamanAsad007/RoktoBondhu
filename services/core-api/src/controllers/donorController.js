@@ -38,6 +38,16 @@ class DonorController {
       next(err);
     }
   }
+
+  async updateAvailabilityWindows(req, res, next) {
+    try {
+      const { windows } = req.body;
+      const result = await donorService.updateAvailabilityWindows(req.user.id, windows || []);
+      return sendSuccess(res, result, 200);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new DonorController();

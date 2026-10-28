@@ -39,6 +39,16 @@ class DonorService {
   async getHistory(userId) {
     return donorRepository.getHistory(userId);
   }
+
+  async updateAvailabilityWindows(userId, windows = []) {
+    const updated = await donorRepository.updateAvailabilityWindows(userId, windows);
+    if (!updated) {
+      const err = new Error('Donor profile not found. Please create a profile first.');
+      err.statusCode = 404;
+      throw err;
+    }
+    return updated;
+  }
 }
 
 module.exports = new DonorService();
