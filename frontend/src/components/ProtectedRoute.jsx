@@ -18,13 +18,16 @@ export default function ProtectedRoute({ children, roleRequired }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (roleRequired && user.role !== roleRequired) {
-    return (
-      <div className="card" style={{ maxWidth: 500, margin: '40px auto', textAlign: 'center' }}>
-        <h3 style={{ color: 'var(--danger)', marginBottom: 8 }}>Access Denied</h3>
-        <p style={{ color: 'var(--text-muted)' }}>You do not have the required permissions ({roleRequired}) to view this page.</p>
-      </div>
-    );
+  if (roleRequired) {
+    const roles = Array.isArray(roleRequired) ? roleRequired : [roleRequired];
+    if (!roles.includes(user.role)) {
+      return (
+        <div className="card" style={{ maxWidth: 500, margin: '40px auto', textAlign: 'center' }}>
+          <h3 style={{ color: 'var(--danger)', marginBottom: 8 }}>Access Denied</h3>
+          <p style={{ color: 'var(--text-muted)' }}>You do not have the required permissions to view this page.</p>
+        </div>
+      );
+    }
   }
 
   return children;

@@ -172,4 +172,19 @@ export const api = {
     }),
   createReport: (body) => apiClient('/reports', { method: 'POST', body: JSON.stringify(body) }),
   searchUsers: (q) => apiClient(`/admin/users/search?q=${encodeURIComponent(q)}`),
+
+  // Organizations & Blood Banks (Phase 17)
+  getNearbyBloodBanks: (params = '') => apiClient(`/organizations/nearby${params ? `?${params}` : ''}`),
+  getMyOrg: () => apiClient('/organizations/me'),
+  registerOrg: (body) => apiClient('/organizations/register', { method: 'POST', body: JSON.stringify(body) }),
+  updateInventory: (body) => apiClient('/organizations/inventory', { method: 'PUT', body: JSON.stringify(body) }),
+  getOrgInventory: (id) => apiClient(`/organizations/${id}/inventory`),
+  createDrive: (body) => apiClient('/organizations/drives', { method: 'POST', body: JSON.stringify(body) }),
+  getNearbyDrives: (params = '') => apiClient(`/organizations/drives/nearby${params ? `?${params}` : ''}`),
+  getMyDrives: () => apiClient('/organizations/drives/mine'),
+  rsvpDrive: (id) => apiClient(`/organizations/drives/${id}/rsvp`, { method: 'POST' }),
+  cancelDriveRsvp: (id) => apiClient(`/organizations/drives/${id}/rsvp`, { method: 'DELETE' }),
+  getDriveAttendees: (id) => apiClient(`/organizations/drives/${id}/attendees`),
+  markDriveAttendance: (id, userId) =>
+    apiClient(`/organizations/drives/${id}/attendees/${userId}/attend`, { method: 'PATCH' }),
 };
