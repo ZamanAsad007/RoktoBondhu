@@ -12,6 +12,7 @@ router.use(requireAuth);
 router.put('/me', validateBody(donorProfileSchema), donorController.upsertMe);
 router.get('/me', donorController.getMe);
 router.patch('/me/availability', validateBody(availabilitySchema), donorController.updateAvailability);
+router.put('/me/availability-windows', donorController.updateAvailabilityWindows);
 router.get('/me/history', donorController.getHistory);
 router.get('/me/stats', donorStatsController.getMyStats);
 router.put('/me/leaderboard-opt-in', donorStatsController.setLeaderboardOptIn);

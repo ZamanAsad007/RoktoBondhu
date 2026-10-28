@@ -82,6 +82,7 @@ class DonorRepository {
         dp.city,
         to_char(dp.last_donated_at, 'YYYY-MM-DD') AS last_donated_at,
         dp.available,
+        dp.availability_windows,
         dp.created_at,
         dp.updated_at
       FROM donor_profiles dp
@@ -188,6 +189,16 @@ class DonorRepository {
       donations,
       responses,
     };
+  }
+  async updateAvailabilityWindows(userId, windows = []) {
+    const text = `
+      UPDATE donor_profiles
+      SET availability_windows = $1::jsonb, updated_at = NOW()
+      WHERE user_id = $2
+      RETURNING user_id, availability_windows, updated_at;
+    `;
+    const { rows } = await query(text, [JSON.stringify(windows), userId]);
+    return rows[0] || null;
   }
 }
 

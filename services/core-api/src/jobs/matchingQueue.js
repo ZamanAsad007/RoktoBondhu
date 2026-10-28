@@ -7,6 +7,7 @@ const auditLogRepository = require('../repositories/auditLogRepository');
 const notificationQueue = require('./notificationQueue');
 const sseService = require('../services/sseService');
 const { REQUEST_STATUSES } = require('../domain/requestStateMachine');
+const { rankCandidatesV2 } = require('../domain/matchingV2');
 
 const redisConnection = {
   host: config.redis.host,
@@ -74,12 +75,17 @@ async function processRunWave(requestId) {
   const eligibleDonors = await matchingRepository.findEligibleDonorsForRequest({
     requestId,
     radiusKm: request.current_radius_km,
-    limit: targetBatchSize,
+    limit: targetBatchSize * 2, // Fetch larger candidate pool for v2 ranking
   });
 
+  const rankedDonors = rankCandidatesV2({
+    candidates: eligibleDonors,
+    maxRadiusKm: request.current_radius_km,
+  }).slice(0, targetBatchSize);
+
   let createdMatches = [];
-  if (eligibleDonors.length > 0) {
-    const matchPayloads = eligibleDonors.map((donor) => ({
+  if (rankedDonors.length > 0) {
+    const matchPayloads = rankedDonors.map((donor) => ({
       requestId,
       donorId: donor.donor_id,
       distanceKm: donor.distance_km,

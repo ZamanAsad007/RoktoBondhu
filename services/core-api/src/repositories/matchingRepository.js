@@ -42,10 +42,14 @@ class MatchingRepository {
         u.name AS donor_name,
         u.phone AS donor_phone,
         u.email AS donor_email,
+        dp.availability_windows,
+        COALESCE(ds.reliability_score, 85) AS reliability_score,
+        ds.avg_response_seconds,
         ROUND((ST_Distance(dp.location, r.location) / 1000.0)::numeric, 2) AS distance_km
       FROM blood_requests r
       CROSS JOIN donor_profiles dp
       JOIN users u ON u.id = dp.user_id
+      LEFT JOIN donor_stats ds ON ds.user_id = dp.user_id
       WHERE
         r.id = $1
         -- 1. Blood compatibility
