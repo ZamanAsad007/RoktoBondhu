@@ -1,6 +1,7 @@
 const bloodRequestRepository = require('../repositories/bloodRequestRepository');
 const matchingRepository = require('../repositories/matchingRepository');
 const matchRepository = require('../repositories/matchRepository');
+const chatRepository = require('../repositories/chatRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
 const userRepository = require('../repositories/userRepository');
 const donorStatsRepository = require('../repositories/donorStatsRepository');
@@ -280,6 +281,11 @@ class BloodRequestService {
 
       await client.query('COMMIT');
 
+      // Auto-close open chat threads on request cancellation (Phase 19)
+      chatRepository
+        .closeThreadsForRequest(requestId, 'REQUEST_CANCELLED')
+        .catch((err) => console.error('[BloodRequestService] Auto-close chat threads error:', err.message));
+
       // Real-time SSE event for cancellation
       sseService
         .publishEvent(
@@ -411,6 +417,11 @@ class BloodRequestService {
       );
 
       await client.query('COMMIT');
+
+      // Auto-close open chat threads on donation confirmation (Phase 19)
+      chatRepository
+        .closeThreadsForRequest(requestId, 'DONATION_COMPLETED')
+        .catch((err) => console.error('[BloodRequestService] Auto-close chat threads error:', err.message));
       return donation;
     } catch (err) {
       await client.query('ROLLBACK');

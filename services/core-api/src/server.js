@@ -4,6 +4,7 @@ const { runMigrations } = require('./db/migrate');
 const { pool } = require('./config/db');
 const redis = require('./config/redis');
 const sseService = require('./services/sseService');
+const { initChatWebSocket, closeChatWebSocket } = require('./services/chatWebSocket');
 
 async function startServer() {
   try {
@@ -21,8 +22,12 @@ async function startServer() {
       console.log(`[Server] Core API service listening on port ${config.port} (${config.env})`);
     });
 
+    // Initialize Chat WebSocket Gateway (Phase 19)
+    initChatWebSocket(server);
+
     const shutdown = async () => {
       console.log('[Server] Shutting down gracefully...');
+      closeChatWebSocket();
       server.close(async () => {
         try {
           await sseService.cleanup();

@@ -25,8 +25,10 @@ import {
   ShieldCheck,
   FileText,
   Upload,
+  MessageSquare,
 } from 'lucide-react';
 import ReportModal from '../components/ReportModal';
+import ChatBox from '../components/ChatBox';
 
 export default function RequestDetail() {
   const { id } = useParams();
@@ -37,6 +39,7 @@ export default function RequestDetail() {
   const [feedback, setFeedback] = useState({ type: '', message: '' });
   const [showReportModal, setShowReportModal] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [activeChatMatchId, setActiveChatMatchId] = useState(null);
 
   // Escalate to SOS Mutation
   const escalateMutation = useMutation({
@@ -506,7 +509,17 @@ export default function RequestDetail() {
                     </div>
                   </div>
 
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveChatMatchId(m.id)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <MessageSquare size={16} color="var(--primary)" />
+                      <span>Chat</span>
+                    </button>
+
                     {isDonated ? (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--success)', fontWeight: 700 }}>
                         <CheckCircle size={18} />
@@ -529,6 +542,19 @@ export default function RequestDetail() {
           </div>
         )}
       </div>
+
+      {/* Masked Chat Modal */}
+      {activeChatMatchId && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl">
+            <ChatBox
+              matchId={activeChatMatchId}
+              currentUser={user}
+              onClose={() => setActiveChatMatchId(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
