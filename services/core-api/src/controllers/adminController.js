@@ -77,6 +77,36 @@ class AdminController {
       next(err);
     }
   }
+
+  async listOrganizations(req, res, next) {
+    try {
+      const organizationRepository = require('../repositories/organizationRepository');
+      const isVerified = req.query.isVerified !== undefined ? req.query.isVerified === 'true' : null;
+      const orgs = await organizationRepository.listOrganizations({
+        isVerified,
+        limit: parseInt(req.query.limit || 50, 10),
+        offset: parseInt(req.query.offset || 0, 10),
+      });
+      return sendSuccess(res, { organizations: orgs });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async verifyOrganization(req, res, next) {
+    try {
+      const organizationRepository = require('../repositories/organizationRepository');
+      const { id } = req.params;
+      const isVerified = req.body.isVerified !== undefined ? Boolean(req.body.isVerified) : true;
+      const org = await organizationRepository.verifyOrganization(id, isVerified);
+      if (!org) {
+        return res.status(404).json({ success: false, error: 'Organization not found' });
+      }
+      return sendSuccess(res, { organization: org });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminController();

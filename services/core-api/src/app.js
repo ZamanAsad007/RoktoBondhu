@@ -8,6 +8,7 @@ const matchRoutes = require('./routes/matchRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const organizationRoutes = require('./routes/organizationRoutes');
 const donorStatsController = require('./controllers/donorStatsController');
 const bloodRequestController = require('./controllers/bloodRequestController');
 const sseController = require('./controllers/sseController');
@@ -49,6 +50,7 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/organizations', organizationRoutes);
 
 // Error handling
 app.use(notFoundHandler);
