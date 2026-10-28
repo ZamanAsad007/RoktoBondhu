@@ -2,11 +2,12 @@ const inAppProvider = require('../providers/inAppProvider');
 const emailProvider = require('../providers/emailProvider');
 const smsProvider = require('../providers/smsProvider');
 const pushProvider = require('../providers/pushProvider');
+const telegramProvider = require('../providers/telegramProvider');
 const db = require('../config/db');
 
 const DEFAULT_CHANNELS = {
-  'request.nearby': ['in_app', 'sms', 'email', 'push'],
-  'donor.accepted': ['in_app', 'email', 'push'],
+  'request.nearby': ['in_app', 'sms', 'email', 'push', 'telegram'],
+  'donor.accepted': ['in_app', 'email', 'push', 'telegram'],
   'request.fulfilled': ['in_app', 'email', 'push'],
   'request.expired': ['in_app', 'email'],
   'request.cancelled': ['in_app'],
@@ -67,6 +68,10 @@ class NotificationDispatcher {
 
           case 'push':
             results.push = await pushProvider.send({ userId, type, payload });
+            break;
+
+          case 'telegram':
+            results.telegram = await telegramProvider.send({ userId, type, payload });
             break;
 
           default:

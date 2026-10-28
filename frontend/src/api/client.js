@@ -178,6 +178,11 @@ export const api = {
   updateNotificationPreferences: (body) =>
     apiClient('/notifications/preferences', { method: 'PUT', body: JSON.stringify(body) }),
 
+  // Telegram Bot Channel (Phase 21)
+  getTelegramStatus: () => apiClient('/telegram/status'),
+  getTelegramLinkCode: () => apiClient('/telegram/link-code', { method: 'POST' }),
+  unlinkTelegram: () => apiClient('/telegram/unlink', { method: 'POST' }),
+
   // Admin & Safety
   getAdminStats: () => apiClient('/admin/stats'),
   getAdminRequests: (params = '') => apiClient(`/admin/requests${params ? `?${params}` : ''}`),
