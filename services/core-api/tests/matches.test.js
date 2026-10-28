@@ -18,6 +18,9 @@ describe('Accept / Decline Flow & Concurrency Protection (Phase 6)', () => {
     await runMigrations();
 
     await db.query(`
+      DELETE FROM chat_messages;
+      DELETE FROM chat_blocks;
+      DELETE FROM chat_threads;
       DELETE FROM audit_logs;
       DELETE FROM donations;
       DELETE FROM request_matches;
@@ -76,7 +79,7 @@ describe('Accept / Decline Flow & Concurrency Protection (Phase 6)', () => {
 
     beforeEach(async () => {
       // Clean request and matches between tests
-      await db.query(`DELETE FROM audit_logs; DELETE FROM request_matches; DELETE FROM blood_requests;`);
+      await db.query(`DELETE FROM chat_messages; DELETE FROM chat_blocks; DELETE FROM chat_threads; DELETE FROM audit_logs; DELETE FROM request_matches; DELETE FROM blood_requests;`);
 
       // Create a 2-unit request
       bloodRequest = await bloodRequestRepository.createRequest({
@@ -294,7 +297,7 @@ describe('Accept / Decline Flow & Concurrency Protection (Phase 6)', () => {
     test(
       'exactly 2 parallel accepts succeed with 200, exactly 18 return 409 Conflict',
       async () => {
-        await db.query(`DELETE FROM audit_logs; DELETE FROM request_matches; DELETE FROM blood_requests;`);
+        await db.query(`DELETE FROM chat_messages; DELETE FROM chat_blocks; DELETE FROM chat_threads; DELETE FROM audit_logs; DELETE FROM request_matches; DELETE FROM blood_requests;`);
 
         // 1. Create a 2-unit request
         const urgentRequest = await bloodRequestRepository.createRequest({

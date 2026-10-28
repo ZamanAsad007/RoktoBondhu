@@ -167,10 +167,16 @@ export const api = {
   confirmDonation: (requestId, matchId) =>
     apiClient(`/requests/${requestId}/matches/${matchId}/confirm-donation`, { method: 'POST' }),
 
-  // Notifications
+  // Notifications & Push (Phase 20)
   getNotifications: (params = '') => apiClient(`/notifications${params ? `?${params}` : ''}`),
   markNotificationRead: (id) => apiClient(`/notifications/${id}/read`, { method: 'PATCH' }),
   markAllNotificationsRead: () => apiClient('/notifications/read-all', { method: 'PATCH' }),
+  getVapidPublicKey: () => apiClient('/notifications/vapid-public-key'),
+  subscribePush: (body) => apiClient('/notifications/push/subscribe', { method: 'POST', body: JSON.stringify(body) }),
+  unsubscribePush: (body) => apiClient('/notifications/push/unsubscribe', { method: 'POST', body: JSON.stringify(body) }),
+  getNotificationPreferences: () => apiClient('/notifications/preferences'),
+  updateNotificationPreferences: (body) =>
+    apiClient('/notifications/preferences', { method: 'PUT', body: JSON.stringify(body) }),
 
   // Admin & Safety
   getAdminStats: () => apiClient('/admin/stats'),

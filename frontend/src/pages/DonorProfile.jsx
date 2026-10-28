@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import MapPicker from '../components/MapPicker';
-import { User, Droplet, Calendar, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Save, Clock } from 'lucide-react';
+import { urlBase64ToUint8Array } from '../utils/push';
+import { User, Droplet, Calendar, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Save, Clock, Bell, Smartphone, Mail, Globe } from 'lucide-react';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -31,6 +33,77 @@ export default function DonorProfile() {
       return res.data?.profile || null;
     },
   });
+
+  // Fetch notification preferences (Phase 20)
+  const [preferences, setPreferences] = useState({
+    in_app: true,
+    email: true,
+    sms: false,
+    push: true,
+  });
+
+  const { data: prefData } = useQuery({
+    queryKey: ['notificationPreferences'],
+    queryFn: async () => {
+      const res = await api.getNotificationPreferences();
+      return res.data || null;
+    },
+  });
+
+  useEffect(() => {
+    if (prefData) {
+      setPreferences({
+        in_app: prefData.in_app !== undefined ? prefData.in_app : true,
+        email: prefData.email !== undefined ? prefData.email : true,
+        sms: prefData.sms !== undefined ? prefData.sms : false,
+        push: prefData.push !== undefined ? prefData.push : true,
+      });
+    }
+  }, [prefData]);
+
+  const updatePreferencesMutation = useMutation({
+    mutationFn: (newPrefs) => api.updateNotificationPreferences(newPrefs),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['notificationPreferences'] });
+      setFeedback({ type: 'success', message: 'Notification preferences saved successfully!' });
+      setTimeout(() => setFeedback({ type: '', message: '' }), 4000);
+    },
+    onError: (err) => {
+      setFeedback({ type: 'error', message: err.message || 'Failed to update preferences' });
+    },
+  });
+
+  const handleTogglePreference = async (key) => {
+    const updated = { ...preferences, [key]: !preferences[key] };
+    setPreferences(updated);
+
+    // If enabling push, request browser permission and register subscription
+    if (key === 'push' && updated.push && 'serviceWorker' in navigator && 'PushManager' in window) {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const reg = await navigator.serviceWorker.ready;
+          const vapidRes = await api.getVapidPublicKey();
+          const publicKey = vapidRes.data?.publicKey;
+          if (publicKey) {
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(publicKey),
+            });
+            await api.subscribePush(sub.toJSON());
+          }
+        } else {
+          setFeedback({ type: 'error', message: 'Browser notification permission denied.' });
+          setPreferences((prev) => ({ ...prev, push: false }));
+          return;
+        }
+      } catch (e) {
+        console.warn('[Push] Error subscribing to push:', e);
+      }
+    }
+
+    updatePreferencesMutation.mutate(updated);
+  };
 
   useEffect(() => {
     if (profileData) {
@@ -355,6 +428,131 @@ export default function DonorProfile() {
               {preset.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Notification Channel Preferences & Web Push (Phase 20) */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <Bell size={18} color="var(--primary)" />
+          <span>Notification & Alert Channel Preferences</span>
+        </h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 16px 0' }}>
+          Select which channels you want to receive emergency blood match invitations and system updates through.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+          {/* In-App */}
+          <div
+            onClick={() => handleTogglePreference('in_app')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 14,
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: preferences.in_app ? '#f0fdf4' : '#ffffff',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Bell size={18} color={preferences.in_app ? 'var(--success)' : 'var(--text-muted)'} />
+              <div>
+                <strong style={{ fontSize: '0.9rem' }}>In-App Notifications</strong>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Real-time inbox and badges</div>
+              </div>
+            </div>
+            {preferences.in_app ? (
+              <ToggleRight size={26} color="var(--success)" />
+            ) : (
+              <ToggleLeft size={26} color="var(--text-muted)" />
+            )}
+          </div>
+
+          {/* Web Push */}
+          <div
+            onClick={() => handleTogglePreference('push')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 14,
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: preferences.push ? '#f0fdf4' : '#ffffff',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Globe size={18} color={preferences.push ? 'var(--success)' : 'var(--text-muted)'} />
+              <div>
+                <strong style={{ fontSize: '0.9rem' }}>Browser Web Push</strong>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Instant home screen push alerts</div>
+              </div>
+            </div>
+            {preferences.push ? (
+              <ToggleRight size={26} color="var(--success)" />
+            ) : (
+              <ToggleLeft size={26} color="var(--text-muted)" />
+            )}
+          </div>
+
+          {/* Email */}
+          <div
+            onClick={() => handleTogglePreference('email')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 14,
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: preferences.email ? '#f0fdf4' : '#ffffff',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Mail size={18} color={preferences.email ? 'var(--success)' : 'var(--text-muted)'} />
+              <div>
+                <strong style={{ fontSize: '0.9rem' }}>Email Alerts</strong>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Urgent requisition summaries</div>
+              </div>
+            </div>
+            {preferences.email ? (
+              <ToggleRight size={26} color="var(--success)" />
+            ) : (
+              <ToggleLeft size={26} color="var(--text-muted)" />
+            )}
+          </div>
+
+          {/* SMS */}
+          <div
+            onClick={() => handleTogglePreference('sms')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: 14,
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: preferences.sms ? '#f0fdf4' : '#ffffff',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Smartphone size={18} color={preferences.sms ? 'var(--success)' : 'var(--text-muted)'} />
+              <div>
+                <strong style={{ fontSize: '0.9rem' }}>SMS Text Messages</strong>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Direct mobile SMS alerts</div>
+              </div>
+            </div>
+            {preferences.sms ? (
+              <ToggleRight size={26} color="var(--success)" />
+            ) : (
+              <ToggleLeft size={26} color="var(--text-muted)" />
+            )}
+          </div>
         </div>
       </div>
     </div>

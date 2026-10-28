@@ -1,0 +1,25 @@
+{
+  "name": "রক্তবন্ধু | RoktoBondhu - Emergency Blood Donation",
+  "short_name": "রক্তবন্ধু",
+  "description": "Autonomous emergency blood matching and live donor notifications across Bangladesh.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e53935",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["medical", "health", "social"]
+}
