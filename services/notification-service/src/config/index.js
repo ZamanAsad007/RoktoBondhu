@@ -28,5 +28,8 @@ module.exports = {
     privateKey: process.env.VAPID_PRIVATE_KEY || 'Kg2j-0BQY5qOnD6C4MHE_FK9_GCjEa47zFKl0-fd9a4',
     subject: process.env.VAPID_SUBJECT || 'mailto:support@roktobondhu.org',
   },
+  telegram: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN || 'mock_telegram_bot_token',
+  },
   queueName: 'notifications',
 };

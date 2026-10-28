@@ -5,7 +5,7 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import MapPicker from '../components/MapPicker';
 import { urlBase64ToUint8Array } from '../utils/push';
-import { User, Droplet, Calendar, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Save, Clock, Bell, Smartphone, Mail, Globe } from 'lucide-react';
+import { User, Droplet, Calendar, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, Save, Clock, Bell, Smartphone, Mail, Globe, Send, MessageCircle, ExternalLink } from 'lucide-react';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -60,6 +60,40 @@ export default function DonorProfile() {
       });
     }
   }, [prefData]);
+
+  // Telegram Bot Channel Integration (Phase 21)
+  const [telegramLinkInfo, setTelegramLinkInfo] = useState(null);
+
+  const { data: telegramStatus, refetch: refetchTelegramStatus } = useQuery({
+    queryKey: ['telegramStatus'],
+    queryFn: async () => {
+      const res = await api.getTelegramStatus();
+      return res.data || null;
+    },
+  });
+
+  const getTelegramCodeMutation = useMutation({
+    mutationFn: () => api.getTelegramLinkCode(),
+    onSuccess: (res) => {
+      setTelegramLinkInfo(res.data);
+    },
+    onError: (err) => {
+      setFeedback({ type: 'error', message: err.message || 'Failed to generate Telegram code' });
+    },
+  });
+
+  const unlinkTelegramMutation = useMutation({
+    mutationFn: () => api.unlinkTelegram(),
+    onSuccess: () => {
+      setTelegramLinkInfo(null);
+      refetchTelegramStatus();
+      setFeedback({ type: 'success', message: 'Telegram account unlinked successfully.' });
+      setTimeout(() => setFeedback({ type: '', message: '' }), 4000);
+    },
+    onError: (err) => {
+      setFeedback({ type: 'error', message: err.message || 'Failed to unlink Telegram' });
+    },
+  });
 
   const updatePreferencesMutation = useMutation({
     mutationFn: (newPrefs) => api.updateNotificationPreferences(newPrefs),
@@ -554,6 +588,76 @@ export default function DonorProfile() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Telegram Bot Channel (Phase 21) */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <Send size={18} color="#0088cc" />
+          <span>Telegram Emergency Alerts Bot</span>
+        </h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 16px 0' }}>
+          Connect your Telegram account to receive instant interactive alerts with inline <strong>Accept</strong> and <strong>Decline</strong> buttons without opening a browser.
+        </p>
+
+        {telegramStatus?.isLinked ? (
+          <div style={{ padding: 16, background: '#f0fdf4', borderRadius: 8, border: '1px solid #86efac', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <CheckCircle2 size={24} color="#16a34a" />
+              <div>
+                <strong style={{ fontSize: '0.95rem', color: '#166534' }}>Connected to Telegram</strong>
+                <div style={{ fontSize: '0.82rem', color: '#15803d' }}>
+                  Username: @{telegramStatus.telegramUsername || 'Telegram User'} • Alerts: {telegramStatus.isActive ? 'Active' : 'Paused'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => unlinkTelegramMutation.mutate()}
+              disabled={unlinkTelegramMutation.isPending}
+              className="btn btn-secondary btn-sm"
+              style={{ color: 'var(--danger)' }}
+            >
+              Disconnect Telegram
+            </button>
+          </div>
+        ) : (
+          <div>
+            {telegramLinkInfo ? (
+              <div style={{ padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: 8 }}>
+                  Complete Linking on Telegram:
+                </h4>
+                <ol style={{ fontSize: '0.88rem', color: 'var(--text-muted)', paddingLeft: 20, margin: '0 0 14px 0', lineHeight: 1.6 }}>
+                  <li>Open Telegram and search for <strong>@{telegramLinkInfo.botUsername || 'RoktoBondhuBot'}</strong></li>
+                  <li>Click <strong>Start</strong> or send the command:</li>
+                </ol>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <code style={{ padding: '8px 12px', background: '#0f172a', color: '#38bdf8', borderRadius: 6, fontWeight: 700, fontSize: '0.95rem' }}>
+                    /start {telegramLinkInfo.linkCode}
+                  </code>
+                </div>
+
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                  This code expires in 15 minutes. Once linked, refresh this page to see confirmation.
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => getTelegramCodeMutation.mutate()}
+                disabled={getTelegramCodeMutation.isPending}
+                className="btn btn-primary btn-sm"
+                style={{ background: '#0088cc', borderColor: '#0088cc', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Send size={16} />
+                <span>{getTelegramCodeMutation.isPending ? 'Generating Code...' : 'Connect Telegram Bot'}</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

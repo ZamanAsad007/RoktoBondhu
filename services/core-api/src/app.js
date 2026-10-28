@@ -11,6 +11,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const telegramRoutes = require('./routes/telegramRoutes');
 const donorStatsController = require('./controllers/donorStatsController');
 const bloodRequestController = require('./controllers/bloodRequestController');
 const sseController = require('./controllers/sseController');
@@ -55,6 +56,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/telegram', telegramRoutes);
 
 // Error handling
 app.use(notFoundHandler);
