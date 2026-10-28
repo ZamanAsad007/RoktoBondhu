@@ -87,14 +87,17 @@ class BloodRequestService {
       throw err;
     }
 
-    // 2. Enforce daily rate limit (max 3 per 24 hours)
+    // 2. Enforce daily rate limit (max 3 per 24 hours) - Phase 18: bypass for verified requesters
     const recentCount = await bloodRequestRepository.countRecentRequestsByUser(currentUser.id, 24);
     if (recentCount >= MAX_DAILY_REQUESTS) {
-      const err = new Error(
-        `Rate limit exceeded: You may only create up to ${MAX_DAILY_REQUESTS} blood requests per 24 hours`
-      );
-      err.status = 429;
-      throw err;
+      const hasVerified = await bloodRequestRepository.hasVerifiedRequestByUser(currentUser.id);
+      if (!hasVerified) {
+        const err = new Error(
+          `Rate limit exceeded: You may only create up to ${MAX_DAILY_REQUESTS} blood requests per 24 hours`
+        );
+        err.status = 429;
+        throw err;
+      }
     }
 
     // 3. Calculate expires_at
@@ -497,6 +500,55 @@ class BloodRequestService {
     // Trigger immediate wider wave
     await processEscalateRequest(requestId);
 
+    return updated;
+  }
+
+  /**
+   * Upload hospital slip or prescription verification document (Phase 18)
+   */
+  async uploadVerificationDocument(currentUser, requestId, file) {
+    if (!file) {
+      const err = new Error('No document file uploaded');
+      err.status = 400;
+      throw err;
+    }
+
+    const request = await bloodRequestRepository.findById(requestId);
+    if (!request) {
+      const err = new Error('Blood request not found');
+      err.status = 404;
+      throw err;
+    }
+
+    if (request.requester_id !== currentUser.id && currentUser.role !== 'ADMIN') {
+      const err = new Error('Forbidden: Not authorized to upload verification document for this request');
+      err.status = 403;
+      throw err;
+    }
+
+    const documentUrl = `/uploads/verifications/${file.filename}`;
+    const updated = await bloodRequestRepository.attachVerificationDocument(requestId, documentUrl);
+    return updated;
+  }
+
+  /**
+   * Admin approve or reject request verification
+   */
+  async reviewRequestVerification(adminUser, requestId, isVerified = true) {
+    if (adminUser.role !== 'ADMIN') {
+      const err = new Error('Forbidden: Admin access required');
+      err.status = 403;
+      throw err;
+    }
+
+    const request = await bloodRequestRepository.findById(requestId);
+    if (!request) {
+      const err = new Error('Blood request not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const updated = await bloodRequestRepository.verifyRequest(requestId, adminUser.id, isVerified);
     return updated;
   }
 }

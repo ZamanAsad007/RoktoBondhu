@@ -22,6 +22,9 @@ import {
   Copy,
   Check,
   Flame,
+  ShieldCheck,
+  FileText,
+  Upload,
 } from 'lucide-react';
 import ReportModal from '../components/ReportModal';
 
@@ -89,6 +92,18 @@ export default function RequestDetail() {
     },
     onError: (err) => {
       setFeedback({ type: 'error', message: err.message || 'Could not confirm donation.' });
+    },
+  });
+
+  // Upload Medical Verification Document Mutation
+  const uploadDocMutation = useMutation({
+    mutationFn: (formData) => api.uploadVerificationDocument(id, formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bloodRequest', id] });
+      setFeedback({ type: 'success', message: 'Medical requisition slip uploaded! Awaiting admin review.' });
+    },
+    onError: (err) => {
+      setFeedback({ type: 'error', message: err.message || 'Failed to upload document.' });
     },
   });
 
@@ -206,6 +221,24 @@ export default function RequestDetail() {
               <span className={`badge badge-${request.urgency ? request.urgency.toLowerCase() : 'normal'}`}>
                 {request.urgency}
               </span>
+              {request.is_verified_request && (
+                <span
+                  style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: 4,
+                    background: '#dcfce7',
+                    color: '#15803d',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                  title="Verified by medical authority or admin"
+                >
+                  <ShieldCheck size={14} /> Verified Request
+                </span>
+              )}
               <span
                 style={{
                   fontSize: '0.8rem',
@@ -362,6 +395,61 @@ export default function RequestDetail() {
             <span>Expires at: {new Date(request.expires_at).toLocaleString()}</span>
           </div>
         </div>
+      </div>
+
+      {/* Hospital Verification Document Card (Phase 18) */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 10px 0' }}>
+          <FileText size={20} color="var(--primary)" />
+          <span>Hospital Verification & Medical Slip</span>
+        </h3>
+        {request.is_verified_request ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: '#f0fdf4', borderRadius: 8, color: '#166534' }}>
+            <ShieldCheck size={24} color="#22c55e" />
+            <div>
+              <strong>Verified Emergency Request</strong>
+              <div style={{ fontSize: '0.82rem' }}>This blood request has been authenticated with official hospital documentation.</div>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 12px 0' }}>
+              Upload an image or PDF of the patient's hospital requisition slip, cross-match form, or doctor's prescription. Verified requests earn trust, priority alerts to donors, and bypass daily rate limits.
+            </p>
+            {request.verification_document_url ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, background: '#fffbeb', borderRadius: 8, border: '1px solid #fef3c7' }}>
+                <span style={{ fontSize: '0.88rem', color: '#b45309', fontWeight: 600 }}>
+                  Document uploaded and awaiting admin review.
+                </span>
+                <a href={request.verification_document_url} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                  View Document
+                </a>
+              </div>
+            ) : isRequester ? (
+              <label className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <Upload size={16} />
+                <span>Upload Medical Requisition Slip</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const data = new FormData();
+                      data.append('document', file);
+                      uploadDocMutation.mutate(data);
+                    }
+                  }}
+                />
+              </label>
+            ) : (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                No verification document submitted by the requester yet.
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Accepted Donors Section */}

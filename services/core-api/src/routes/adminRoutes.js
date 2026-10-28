@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const bloodRequestController = require('../controllers/bloodRequestController');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 router.use(requireAuth);
@@ -14,5 +15,6 @@ router.patch('/users/:id/block', (req, res, next) => adminController.blockUser(r
 router.get('/users/search', (req, res, next) => adminController.searchUsers(req, res, next));
 router.get('/organizations', (req, res, next) => adminController.listOrganizations(req, res, next));
 router.patch('/organizations/:id/verify', (req, res, next) => adminController.verifyOrganization(req, res, next));
+router.patch('/requests/:id/verify', (req, res, next) => bloodRequestController.adminVerifyRequest(req, res, next));
 
 module.exports = router;
