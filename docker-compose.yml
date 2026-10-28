@@ -62,6 +62,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     ports:
       - "5000:5000"
 
@@ -94,6 +100,12 @@ services:
       dockerfile: frontend/Dockerfile
     container_name: roktobondhu-frontend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     ports:
       - "3000:80"
 
@@ -106,8 +118,10 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - core-api
-      - frontend
+      core-api:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
 
 volumes:
   pgdata:
