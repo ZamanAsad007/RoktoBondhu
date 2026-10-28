@@ -4,6 +4,7 @@ const matchingConfig = require('../config/matching.config');
 const bloodRequestRepository = require('../repositories/bloodRequestRepository');
 const matchingRepository = require('../repositories/matchingRepository');
 const auditLogRepository = require('../repositories/auditLogRepository');
+const chatRepository = require('../repositories/chatRepository');
 const notificationQueue = require('./notificationQueue');
 const sseService = require('../services/sseService');
 const { REQUEST_STATUSES } = require('../domain/requestStateMachine');
@@ -255,6 +256,9 @@ async function processExpireRequest(requestId) {
   ) {
     await bloodRequestRepository.updateStatus(requestId, REQUEST_STATUSES.EXPIRED);
     await matchingRepository.expirePendingMatches(requestId);
+
+    // Auto-close open chat threads on request expiration (Phase 19)
+    await chatRepository.closeThreadsForRequest(requestId, 'REQUEST_EXPIRED');
 
     // Real-time SSE event for requester (request.expired)
     sseService

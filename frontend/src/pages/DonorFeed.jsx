@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useLiveUpdates } from '../hooks/useLiveUpdates';
+import { useAuth } from '../context/AuthContext';
+import ChatBox from '../components/ChatBox';
 import {
   Heart,
   Droplet,
@@ -14,12 +16,15 @@ import {
   Lock,
   Unlock,
   Radio,
+  MessageSquare,
 } from 'lucide-react';
 
 export default function DonorFeed() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('notified'); // 'notified' | 'accepted' | 'all' | 'nearby'
   const [actionFeedback, setActionFeedback] = useState({ type: '', message: '' });
+  const [activeChatMatchId, setActiveChatMatchId] = useState(null);
 
   // SSE live updates replacing polling
   const { isConnected: isLive, pollingInterval } = useLiveUpdates({ fallbackInterval: 15000 });
@@ -311,6 +316,21 @@ export default function DonorFeed() {
                   )}
                 </div>
 
+                {/* Masked Chat Option for Accepted Donors (Phase 19) */}
+                {isAccepted && (
+                  <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveChatMatchId(m.match_id)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <MessageSquare size={16} color="var(--primary)" />
+                      <span>In-App Masked Chat</span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Actions for Notified Requests */}
                 {isNotified && (
                   <div
@@ -349,6 +369,19 @@ export default function DonorFeed() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Masked Chat Modal */}
+      {activeChatMatchId && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl">
+            <ChatBox
+              matchId={activeChatMatchId}
+              currentUser={user}
+              onClose={() => setActiveChatMatchId(null)}
+            />
+          </div>
         </div>
       )}
     </div>

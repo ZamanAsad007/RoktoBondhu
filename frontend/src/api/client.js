@@ -202,4 +202,14 @@ export const api = {
   getDriveAttendees: (id) => apiClient(`/organizations/drives/${id}/attendees`),
   markDriveAttendance: (id, userId) =>
     apiClient(`/organizations/drives/${id}/attendees/${userId}/attend`, { method: 'PATCH' }),
+
+  // Masked In-App Chat (Phase 19)
+  getChatThreadByMatch: (matchId) => apiClient(`/chat/threads/by-match/${matchId}`),
+  getChatThread: (threadId) => apiClient(`/chat/threads/${threadId}`),
+  getChatMessages: (threadId, limit = 100) => apiClient(`/chat/threads/${threadId}/messages?limit=${limit}`),
+  sendChatMessage: (threadId, content) =>
+    apiClient(`/chat/threads/${threadId}/messages`, { method: 'POST', body: JSON.stringify({ content }) }),
+  shareChatPhone: (threadId) => apiClient(`/chat/threads/${threadId}/share-phone`, { method: 'POST' }),
+  blockChatUser: (threadId, reason) =>
+    apiClient(`/chat/threads/${threadId}/block`, { method: 'POST', body: JSON.stringify({ reason }) }),
 };

@@ -4,6 +4,7 @@ const auditLogRepository = require('../repositories/auditLogRepository');
 const notificationQueue = require('../jobs/notificationQueue');
 const sseService = require('./sseService');
 const db = require('../config/db');
+const chatRepository = require('../repositories/chatRepository');
 const { maskPhoneNumber } = require('./bloodRequestService');
 const { REQUEST_STATUSES } = require('../domain/requestStateMachine');
 const { MATCH_STATUSES } = require('../domain/matchStateMachine');
@@ -167,6 +168,16 @@ class MatchService {
 
       // Post-commit notification side-effects (non-blocking)
       try {
+        // Auto-create chat thread for accepted match (Phase 19)
+        chatRepository
+          .createThread({
+            requestId: request.id,
+            matchId,
+            requesterId: request.requester_id,
+            donorId: currentUser.id,
+          })
+          .catch((err) => console.error('[MatchService] Auto-create chat thread error:', err.message));
+
         // SSE Real-time Updates: match.accepted
         sseService
           .publishEvent(
