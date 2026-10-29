@@ -43,8 +43,8 @@ describe('Phase 20: Web Push & Notification Preferences API', () => {
     const subscriptionPayload = {
       endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint-token',
       keys: {
-        p256dh: 'BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QT9t0P43CXHgJa2keW60RBLScGO8VD2fsqY',
-        auth: 'tBHItJI5svbpLvNuhStggA',
+        p256dh: 'mock_test_p256dh_key_for_testing_purposes_only_0000000000000000',
+        auth: 'mock_test_auth_secret_000000',
       },
     };
 
