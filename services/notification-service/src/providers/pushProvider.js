@@ -3,7 +3,11 @@ const db = require('../config/db');
 const config = require('../config');
 
 // Initialize VAPID details if configured
-if (config.vapid?.publicKey && config.vapid?.privateKey) {
+if (
+  config.vapid?.publicKey &&
+  config.vapid?.privateKey &&
+  !config.vapid.publicKey.startsWith('test_')
+) {
   try {
     webpush.setVapidDetails(
       config.vapid.subject || 'mailto:support@roktobondhu.org',

@@ -55,6 +55,9 @@ jobs:
       MAILPIT_SMTP_PORT: 1025
       JWT_ACCESS_SECRET: test_jwt_access_secret_for_ci_pipeline_32bytes_or_more
       JWT_REFRESH_SECRET: test_jwt_refresh_secret_for_ci_pipeline_32bytes_or_more
+      VAPID_PUBLIC_KEY: test_vapid_public_key_for_ci
+      VAPID_PRIVATE_KEY: test_vapid_private_key_for_ci
+      VAPID_SUBJECT: mailto:ci@roktobondhu.org
 
     steps:
       - name: Checkout code

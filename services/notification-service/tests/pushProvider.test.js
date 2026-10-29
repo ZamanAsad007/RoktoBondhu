@@ -50,6 +50,7 @@ describe('Phase 20: Notification Service Push Provider & Preferences', () => {
       type: 'request.nearby',
       userId: testUserId,
       payload: { bloodGroup: 'B+', hospitalName: 'Dhaka Medical' },
+      channels: ['in_app', 'sms', 'email', 'push'],
     });
 
     // Should only have 'in_app' since email, sms, and push are disabled in preferences

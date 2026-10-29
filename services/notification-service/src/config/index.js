@@ -24,8 +24,8 @@ module.exports = {
     from: process.env.EMAIL_FROM || 'RoktoBondhu Alerts <alerts@roktobondhu.org>',
   },
   vapid: {
-    publicKey: process.env.VAPID_PUBLIC_KEY || 'BEisuXFj_ToNYNUWOfLdjDbba1mTRCd8SCAdkjTgA-tWz0Z7BpIRfWGDqO_fTl6BgrrqN6BZXDhyEa95km1yBsA',
-    privateKey: process.env.VAPID_PRIVATE_KEY || 'Kg2j-0BQY5qOnD6C4MHE_FK9_GCjEa47zFKl0-fd9a4',
+    publicKey: process.env.VAPID_PUBLIC_KEY || '',
+    privateKey: process.env.VAPID_PRIVATE_KEY || '',
     subject: process.env.VAPID_SUBJECT || 'mailto:support@roktobondhu.org',
   },
   telegram: {
