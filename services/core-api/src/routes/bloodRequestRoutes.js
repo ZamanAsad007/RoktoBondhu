@@ -5,11 +5,13 @@ const { requireAuth } = require('../middleware/auth');
 const { validateBody } = require('../middleware/validate');
 const { createBloodRequestSchema } = require('../validation/bloodRequest');
 const { uploadVerificationDoc } = require('../middleware/upload');
+const idempotencyMiddleware = require('../middleware/idempotency');
 
 // Create blood request (rate limited, urgency expiry computed)
 router.post(
   '/',
   requireAuth,
+  idempotencyMiddleware(),
   validateBody(createBloodRequestSchema),
   bloodRequestController.createRequest
 );
