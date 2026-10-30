@@ -183,6 +183,13 @@ export const api = {
   getTelegramLinkCode: () => apiClient('/telegram/link-code', { method: 'POST' }),
   unlinkTelegram: () => apiClient('/telegram/unlink', { method: 'POST' }),
 
+  // Phase 22: Analytics, Heatmap & Shortage Forecast
+  getAdminAnalyticsOverview: () => apiClient('/admin/analytics/overview'),
+  getAdminHeatmapGrid: (resolution) =>
+    apiClient(`/admin/analytics/heatmap${resolution ? `?resolution=${resolution}` : ''}`),
+  getAdminShortageForecast: () => apiClient('/admin/analytics/forecast'),
+  getRecruitNudges: () => apiClient('/donors/me/recruit-nudges'),
+
   // Admin & Safety
   getAdminStats: () => apiClient('/admin/stats'),
   getAdminRequests: (params = '') => apiClient(`/admin/requests${params ? `?${params}` : ''}`),

@@ -107,6 +107,48 @@ class AdminController {
       next(err);
     }
   }
+
+  async getAnalyticsOverview(req, res, next) {
+    try {
+      const analyticsService = require('../services/analyticsService');
+      const overview = await analyticsService.getOverview();
+      return sendSuccess(res, { analytics: overview });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getHeatmapGrid(req, res, next) {
+    try {
+      const analyticsService = require('../services/analyticsService');
+      const grid = await analyticsService.getHeatmapGrid(req.query.resolution);
+      return sendSuccess(res, { grid });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getShortageForecast(req, res, next) {
+    try {
+      const analyticsService = require('../services/analyticsService');
+      const forecast = await analyticsService.getShortageForecast();
+      return sendSuccess(res, { forecast });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async exportAnalyticsCsv(req, res, next) {
+    try {
+      const analyticsService = require('../services/analyticsService');
+      const csv = await analyticsService.exportCsv();
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="roktobondhu-analytics.csv"');
+      return res.status(200).send(csv);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminController();

@@ -53,6 +53,15 @@ export default function DonorFeed() {
     enabled: activeTab === 'nearby',
   });
 
+  // Query recruit nudges (Phase 22)
+  const { data: recruitNudges = [] } = useQuery({
+    queryKey: ['recruitNudges'],
+    queryFn: async () => {
+      const res = await api.getRecruitNudges();
+      return res.data?.nudges || [];
+    },
+  });
+
   // Accept Mutation
   const acceptMutation = useMutation({
     mutationFn: (matchId) => api.acceptMatch(matchId),
@@ -108,6 +117,59 @@ export default function DonorFeed() {
           Review blood requests you have been notified for, or browse active nearby emergencies.
         </p>
       </div>
+
+      {/* Recruit Nudges / Donors Needed Banner (Phase 22) */}
+      {recruitNudges.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {recruitNudges.map((nudge) => (
+            <div
+              key={nudge.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '14px 18px',
+                borderRadius: 'var(--radius-md)',
+                background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+                border: '1px solid #fecaca',
+                color: '#991b1b',
+                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div
+                  style={{
+                    background: '#dc2626',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    width: 38,
+                    height: 38,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  {nudge.bloodGroup || '!'}
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#b91c1c' }}>
+                    {nudge.title}
+                  </h4>
+                  <p style={{ margin: '3px 0 0 0', fontSize: '0.85rem', color: '#7f1d1d' }}>
+                    {nudge.message}
+                  </p>
+                </div>
+              </div>
+              <span className="badge badge-critical" style={{ fontSize: '0.75rem', flexShrink: 0, marginLeft: 12 }}>
+                DONORS NEEDED
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {actionFeedback.message && (
         <div

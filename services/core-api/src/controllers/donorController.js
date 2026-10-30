@@ -48,6 +48,19 @@ class DonorController {
       next(err);
     }
   }
+
+  async getRecruitNudges(req, res, next) {
+    try {
+      const analyticsService = require('../services/analyticsService');
+      const profile = await donorService.getProfile(req.user.id);
+      const bloodGroup = profile ? profile.blood_group : null;
+      const city = profile ? profile.city : null;
+      const nudges = await analyticsService.getRecruitNudges(bloodGroup, city);
+      return sendSuccess(res, { nudges }, 200);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new DonorController();

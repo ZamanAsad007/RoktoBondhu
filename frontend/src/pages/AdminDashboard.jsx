@@ -15,7 +15,12 @@ import {
   Radio,
   FileText,
   Filter,
+  Activity,
+  Download,
+  Flame,
+  AlertTriangle,
 } from 'lucide-react';
+import HeatmapGrid from '../components/HeatmapGrid';
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -65,6 +70,40 @@ export default function AdminDashboard() {
     },
     enabled: false,
   });
+
+  // 5. Fetch Analytics Overview (Phase 22)
+  const { data: analyticsData } = useQuery({
+    queryKey: ['adminAnalyticsOverview'],
+    queryFn: async () => {
+      const res = await api.getAdminAnalyticsOverview();
+      return res.data?.analytics || null;
+    },
+    enabled: activeTab === 'analytics' || activeTab === 'stats',
+  });
+
+  // 6. Fetch Heatmap Grid (Phase 22)
+  const { data: heatmapGrid = [] } = useQuery({
+    queryKey: ['adminHeatmapGrid'],
+    queryFn: async () => {
+      const res = await api.getAdminHeatmapGrid();
+      return res.data?.grid || [];
+    },
+    enabled: activeTab === 'analytics',
+  });
+
+  // 7. Fetch Shortage Forecast (Phase 22)
+  const { data: shortageForecast = [] } = useQuery({
+    queryKey: ['adminShortageForecast'],
+    queryFn: async () => {
+      const res = await api.getAdminShortageForecast();
+      return res.data?.forecast || [];
+    },
+    enabled: activeTab === 'analytics',
+  });
+
+  function handleExportCsv() {
+    window.open('/api/admin/analytics/export', '_blank');
+  }
 
   // Update Report Mutation
   const updateReportMutation = useMutation({
@@ -220,6 +259,13 @@ export default function AdminDashboard() {
         >
           <Users size={16} />
           <span>User Safety & Blocking</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`btn btn-sm ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
+        >
+          <Activity size={16} />
+          <span>Demand Heatmap & Forecast</span>
         </button>
       </div>
 
@@ -491,6 +537,181 @@ export default function AdminDashboard() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tab: Analytics, Heatmap & Shortage Forecast (Phase 22) */}
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Header Action Bar */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: '#fff',
+              padding: 16,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Activity size={20} color="var(--primary)" />
+                <span>Demand Heatmap & Shortage Forecast</span>
+              </h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Aggregated spatial demand, donor supply ratios, and 4-week moving average shortage risks.
+              </p>
+            </div>
+            <button
+              onClick={handleExportCsv}
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              <Download size={16} />
+              <span>Export Analytics (CSV)</span>
+            </button>
+          </div>
+
+          {/* Shortage Forecast Alerts */}
+          <div className="card">
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Flame size={18} color="var(--danger)" />
+              <span>Blood Group Shortage Risk Forecast (4-Week Moving Average)</span>
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+              {shortageForecast.map((f, idx) => {
+                const isHigh = f.riskLevel === 'HIGH';
+                const isMod = f.riskLevel === 'MODERATE';
+                const borderColor = isHigh ? '#fca5a5' : isMod ? '#fde68a' : '#bbf7d0';
+                const bgColor = isHigh ? '#fef2f2' : isMod ? '#fffbeb' : '#f0fdf4';
+
+                return (
+                  <div
+                    key={`${f.city}_${f.bloodGroup}_${idx}`}
+                    style={{
+                      background: bgColor,
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: 'var(--radius-sm)',
+                      padding: 14,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)' }}>
+                          {f.bloodGroup}
+                        </span>
+                        <span
+                          className={`badge ${
+                            isHigh ? 'badge-critical' : isMod ? 'badge-urgent' : 'badge-normal'
+                          }`}
+                          style={{ fontSize: '0.72rem' }}
+                        >
+                          {f.riskLevel} RISK
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                        Area: <strong>{f.city}</strong>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 12, borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 8, fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-main)' }}>
+                        <span>Weekly Avg Demand:</span>
+                        <strong>{f.movingAvgWeeklyDemand} units</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-main)', marginTop: 4 }}>
+                        <span>Predicted Need:</span>
+                        <strong>{f.forecastedDemandNextWeek} units</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--success)', marginTop: 4 }}>
+                        <span>Ready Donors:</span>
+                        <strong>{f.currentEligibleDonors} donors</strong>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Leaflet Spatial Heatmap Grid */}
+          <HeatmapGrid grid={heatmapGrid} />
+
+          {/* Supply vs Demand Breakdown Table */}
+          <div className="card">
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16 }}>
+              Supply vs. Demand Breakdown by Area & Blood Group
+            </h4>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '8px 12px' }}>Area</th>
+                    <th style={{ padding: '8px 12px' }}>Blood Group</th>
+                    <th style={{ padding: '8px 12px' }}>Total Requests</th>
+                    <th style={{ padding: '8px 12px' }}>Fulfillment Rate</th>
+                    <th style={{ padding: '8px 12px' }}>Active Demand</th>
+                    <th style={{ padding: '8px 12px' }}>Eligible Donors</th>
+                    <th style={{ padding: '8px 12px' }}>Supply/Demand</th>
+                    <th style={{ padding: '8px 12px' }}>Avg Time to Accept</th>
+                    <th style={{ padding: '8px 12px' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analyticsData?.breakdown && analyticsData.breakdown.length > 0 ? (
+                    analyticsData.breakdown.map((row, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>{row.area}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span className="badge badge-normal" style={{ fontWeight: 700 }}>
+                            {row.bloodGroup}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>{row.totalRequests}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--success)' }}>
+                          {row.fulfillmentRatePct}%
+                        </td>
+                        <td style={{ padding: '10px 12px', color: 'var(--danger)', fontWeight: 600 }}>
+                          {row.activeRequests}
+                        </td>
+                        <td style={{ padding: '10px 12px', color: 'var(--success)', fontWeight: 600 }}>
+                          {row.eligibleDonors}
+                        </td>
+                        <td style={{ padding: '10px 12px', fontWeight: 700 }}>
+                          {row.supplyDemandRatio}x
+                        </td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>
+                          {row.avgTimeToAcceptMins ? `${row.avgTimeToAcceptMins} min` : 'N/A'}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          {row.shortageRisk ? (
+                            <span className="badge badge-critical" style={{ fontSize: '0.75rem' }}>
+                              Shortage
+                            </span>
+                          ) : (
+                            <span className="badge badge-normal" style={{ fontSize: '0.75rem', color: 'var(--success)' }}>
+                              Balanced
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={9} style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No aggregated analytics available yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>
