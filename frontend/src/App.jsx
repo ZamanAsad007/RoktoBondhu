@@ -23,6 +23,7 @@ import PublicSharePage from './pages/PublicSharePage';
 import BloodBanks from './pages/BloodBanks';
 import BloodDrives from './pages/BloodDrives';
 import OrgDashboard from './pages/OrgDashboard';
+import HowMatchingWorks from './pages/HowMatchingWorks';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +44,7 @@ export default function App() {
               <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
+              <Route path="/how-matching-works" element={<HowMatchingWorks />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/blood-banks" element={<BloodBanks />} />
               <Route path="/drives" element={<BloodDrives />} />

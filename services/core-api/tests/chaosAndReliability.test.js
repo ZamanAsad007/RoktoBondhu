@@ -57,6 +57,11 @@ describe('Phase 23: Reliability Pack & Chaos Scenarios', () => {
   });
 
   describe('1. Transactional Outbox & Chaos Recovery', () => {
+    beforeEach(async () => {
+      // Clear outbox so other test artifacts don't interfere
+      await db.query('DELETE FROM outbox');
+    });
+
     it('writes jobs to outbox table and publisher successfully dispatches them', async () => {
       const ts = Date.now();
       const testJob = await outboxRepository.insertJob(null, {
@@ -116,9 +121,11 @@ describe('Phase 23: Reliability Pack & Chaos Scenarios', () => {
 
   describe('2. Idempotency Keys', () => {
     it('replays identical response for duplicate POST /requests with same Idempotency-Key', async () => {
-      const idempotencyKey = `req-idemp-${Date.now()}`;
+      const ts = Date.now();
+      const idempotencyKey = `req-idemp-${ts}`;
+      const patientName = `Idempotent Patient ${ts}`;
       const payload = {
-        patient_name: 'Idempotent Patient',
+        patient_name: patientName,
         blood_group: 'B+',
         units_needed: 1,
         hospital_name: 'Square Hospital',
@@ -155,7 +162,8 @@ describe('Phase 23: Reliability Pack & Chaos Scenarios', () => {
 
       // Verify in DB that only 1 request was created
       const countRes = await db.query(
-        `SELECT COUNT(*)::int AS count FROM blood_requests WHERE patient_name = 'Idempotent Patient'`
+        `SELECT COUNT(*)::int AS count FROM blood_requests WHERE patient_name = $1`,
+        [patientName]
       );
       expect(countRes.rows[0].count).toBe(1);
     });
