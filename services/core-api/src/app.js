@@ -19,17 +19,29 @@ const { requireAuth, requireRole } = require('./middleware/auth');
 const userRepository = require('./repositories/userRepository');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { sendSuccess } = require('./utils/response');
+const correlationIdMiddleware = require('./middleware/correlationId');
+const { metricsMiddleware, register } = require('./metrics/prometheus');
+const { rateLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
 app.use(cors());
+app.use(correlationIdMiddleware);
+app.use(metricsMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
+  app.use(rateLimiter({ windowMs: 60000, max: 200 }));
 }
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
