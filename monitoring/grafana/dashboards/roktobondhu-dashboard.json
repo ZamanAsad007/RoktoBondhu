@@ -1,0 +1,87 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Matching Waves Initiated",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(roktobondhu_matching_waves_total)",
+          "legendFormat": "Waves"
+        }
+      ]
+    },
+    {
+      "title": "Total Match Accepts",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(roktobondhu_matches_accepted_total)",
+          "legendFormat": "Accepts"
+        }
+      ]
+    },
+    {
+      "title": "Avg Time to First Accept (Seconds)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(roktobondhu_time_to_first_accept_seconds_sum[5m]) / rate(roktobondhu_time_to_first_accept_seconds_count[5m])",
+          "legendFormat": "Avg Seconds"
+        }
+      ]
+    },
+    {
+      "title": "BullMQ Active Queue Depth",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(roktobondhu_queue_depth)",
+          "legendFormat": "Queue Depth"
+        }
+      ]
+    },
+    {
+      "title": "HTTP Request Throughput (req/sec)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "sum(rate(roktobondhu_http_requests_total[1m])) by (status_code)",
+          "legendFormat": "Status {{status_code}}"
+        }
+      ]
+    },
+    {
+      "title": "HTTP Latency 95th Percentile",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(roktobondhu_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95 Latency (s)"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["roktobondhu", "reliability"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "RoktoBondhu Reliability & Concurrency Dashboard",
+  "uid": "roktobondhu-reliability",
+  "version": 1
+}

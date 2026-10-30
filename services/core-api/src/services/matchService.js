@@ -164,6 +164,25 @@ class MatchService {
         client
       );
 
+      // 14. Transactional outbox for guaranteed notification publishing (Phase 23)
+      try {
+        const outboxRepository = require('../repositories/outboxRepository');
+        await outboxRepository.insertJob(client, {
+          queueName: 'notifications',
+          eventType: 'donor_accepted',
+          payload: {
+            requestId: request.id,
+            matchId,
+            donorId: currentUser.id,
+            requesterId: request.requester_id,
+            acceptedCount: newAcceptedCount,
+            isFulfilled,
+          },
+        });
+      } catch (outboxErr) {
+        console.error('[MatchService] Outbox insert error:', outboxErr.message);
+      }
+
       await client.query('COMMIT');
 
       // Post-commit notification side-effects (non-blocking)

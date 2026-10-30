@@ -5,6 +5,8 @@ const { pool } = require('./config/db');
 const redis = require('./config/redis');
 const sseService = require('./services/sseService');
 const { initChatWebSocket, closeChatWebSocket } = require('./services/chatWebSocket');
+const { startMatchingWorker, closeMatchingQueue } = require('./jobs/matchingQueue');
+const { startOutboxPublisher, stopOutboxPublisher } = require('./jobs/outboxPublisher');
 
 async function startServer() {
   try {
@@ -18,6 +20,10 @@ async function startServer() {
     // Initialize Redis pub/sub subscriber for SSE fan-out
     sseService.initSubscriber();
 
+    // Start background matching worker and transactional outbox publisher (Phase 23)
+    startMatchingWorker();
+    startOutboxPublisher();
+
     const server = app.listen(config.port, () => {
       console.log(`[Server] Core API service listening on port ${config.port} (${config.env})`);
     });
@@ -27,7 +33,9 @@ async function startServer() {
 
     const shutdown = async () => {
       console.log('[Server] Shutting down gracefully...');
+      stopOutboxPublisher();
       closeChatWebSocket();
+      await closeMatchingQueue();
       server.close(async () => {
         try {
           await sseService.cleanup();

@@ -2,6 +2,7 @@ const express = require('express');
 const authController = require('../controllers/authController');
 const { validateBody } = require('../middleware/validate');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { loginBruteForceLimiter } = require('../middleware/rateLimiter');
 const {
   registerSchema,
   loginSchema,
@@ -14,7 +15,7 @@ const {
 const router = express.Router();
 
 router.post('/register', validateBody(registerSchema), authController.register);
-router.post('/login', validateBody(loginSchema), authController.login);
+router.post('/login', loginBruteForceLimiter(), validateBody(loginSchema), authController.login);
 router.post('/refresh', validateBody(refreshSchema), authController.refresh);
 router.post('/logout', optionalAuth, validateBody(logoutSchema), authController.logout);
 router.post('/send-otp', optionalAuth, validateBody(sendOtpSchema), authController.sendOtp);

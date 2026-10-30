@@ -133,6 +133,18 @@ class BloodRequestService {
       },
     });
 
+    // 5.5 Transactional outbox entry for reliable wave publishing (Phase 23)
+    try {
+      const outboxRepository = require('../repositories/outboxRepository');
+      await outboxRepository.insertJob(null, {
+        queueName: 'matching-waves',
+        eventType: 'run-wave',
+        payload: { requestId: newRequest.id },
+      });
+    } catch (outboxErr) {
+      console.error('[BloodRequestService] Outbox insert error:', outboxErr.message);
+    }
+
     // 6. Trigger first wave and schedule expiration
     try {
       const queue = getMatchingQueue();
