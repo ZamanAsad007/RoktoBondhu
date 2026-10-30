@@ -19,6 +19,7 @@ import {
   Building2,
   Calendar,
   Languages,
+  Compass,
 } from 'lucide-react';
 
 export default function Layout({ children }) {
@@ -62,6 +63,10 @@ export default function Layout({ children }) {
               <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>{isBengali ? 'English' : 'বাংলা'}</span>
             </button>
 
+            <NavLink to="/how-matching-works" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <Compass size={18} />
+              <span>{isBengali ? 'কিভাবে কাজ করে' : 'How It Works'}</span>
+            </NavLink>
             <NavLink to="/blood-banks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               <Building2 size={18} />
               <span>{t('nav.bloodBanks')}</span>
@@ -170,6 +175,11 @@ export default function Layout({ children }) {
       <footer style={{ borderTop: '1px solid var(--border)', background: '#ffffff', padding: '24px 16px', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         <p><strong>RoktoBondhu | রক্তবন্ধু</strong> — Life-saving emergency blood matcher.</p>
         <p style={{ marginTop: 4 }}>Donor contact information is protected and disclosed only after mutual acceptance.</p>
+        <p style={{ marginTop: 6 }}>
+          <Link to="/how-matching-works" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+            {isBengali ? 'ম্যাচিং প্রক্রিয়া বিস্তারিত পড়ুন →' : 'Learn How Matching Works →'}
+          </Link>
+        </p>
       </footer>
     </div>
   );
