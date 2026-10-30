@@ -15,6 +15,7 @@ router.patch('/me/availability', validateBody(availabilitySchema), donorControll
 router.put('/me/availability-windows', donorController.updateAvailabilityWindows);
 router.get('/me/history', donorController.getHistory);
 router.get('/me/stats', donorStatsController.getMyStats);
+router.get('/me/recruit-nudges', (req, res, next) => donorController.getRecruitNudges(req, res, next));
 router.put('/me/leaderboard-opt-in', donorStatsController.setLeaderboardOptIn);
 
 module.exports = router;

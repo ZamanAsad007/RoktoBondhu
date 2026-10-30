@@ -8,6 +8,10 @@ router.use(requireAuth);
 router.use(requireRole('ADMIN'));
 
 router.get('/stats', (req, res, next) => adminController.getStats(req, res, next));
+router.get('/analytics/overview', (req, res, next) => adminController.getAnalyticsOverview(req, res, next));
+router.get('/analytics/heatmap', (req, res, next) => adminController.getHeatmapGrid(req, res, next));
+router.get('/analytics/forecast', (req, res, next) => adminController.getShortageForecast(req, res, next));
+router.get('/analytics/export', (req, res, next) => adminController.exportAnalyticsCsv(req, res, next));
 router.get('/requests', (req, res, next) => adminController.getRequests(req, res, next));
 router.get('/reports', (req, res, next) => adminController.getReports(req, res, next));
 router.patch('/reports/:id', (req, res, next) => adminController.updateReport(req, res, next));
