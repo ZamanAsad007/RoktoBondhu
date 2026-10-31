@@ -8,7 +8,7 @@ help:
 	@echo "  make build     - Build all multi-stage Docker container images"
 	@echo "  make logs      - View logs across all services"
 	@echo "  make migrate   - Run PostgreSQL database migrations"
-	@echo "  make seed      - Seed 15 volunteer donors across Dhaka"
+	@echo "  make seed      - Seed volunteer donors, admin, hospital org & leaderboard"
 	@echo "  make test      - Run full unit, domain, and integration test suites"
 	@echo "  make demo      - Run interactive emergency request & matching wave demo"
 
