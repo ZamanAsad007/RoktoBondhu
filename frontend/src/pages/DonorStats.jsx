@@ -23,7 +23,7 @@ export default function DonorStats() {
     queryKey: ['donor-stats'],
     queryFn: async () => {
       const res = await api.get('/donors/me/stats');
-      return res.data.data;
+      return res?.data?.data || res?.data || null;
     },
   });
 
@@ -31,7 +31,7 @@ export default function DonorStats() {
   const optInMutation = useMutation({
     mutationFn: async (showOnLeaderboard) => {
       const res = await api.put('/donors/me/leaderboard-opt-in', { showOnLeaderboard });
-      return res.data.data;
+      return res?.data?.data || res?.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['donor-stats']);

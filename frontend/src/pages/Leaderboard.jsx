@@ -8,7 +8,7 @@ export default function Leaderboard() {
     queryKey: ['leaderboard'],
     queryFn: async () => {
       const res = await api.get('/leaderboard');
-      return res.data.data;
+      return res?.data?.data || res?.data || [];
     },
   });
 

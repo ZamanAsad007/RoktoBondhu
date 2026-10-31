@@ -25,7 +25,7 @@ export default function PublicSharePage() {
     queryKey: ['public-request-share', shareToken],
     queryFn: async () => {
       const res = await api.get(`/requests/share/${shareToken}`);
-      return res.data.data.request;
+      return res?.data?.request || res?.data?.data?.request || null;
     },
     enabled: Boolean(shareToken),
   });
