@@ -1,15 +1,20 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
-import { Trophy, Award, Flame, MapPin, Loader2, Users } from 'lucide-react';
+import { Trophy, Award, Flame, MapPin, Loader2, Users, RefreshCw } from 'lucide-react';
 
 export default function Leaderboard() {
-  const { data: leaderboard = [], isLoading, error } = useQuery({
+  const { data: leaderboard = [], isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: async () => {
       const res = await api.get('/leaderboard');
-      return res?.data?.data || res?.data || [];
+      if (Array.isArray(res)) return res;
+      if (Array.isArray(res?.data)) return res.data;
+      if (Array.isArray(res?.data?.data)) return res.data.data;
+      return [];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   return (
@@ -25,6 +30,24 @@ export default function Leaderboard() {
         <p style={{ maxWidth: 580, margin: '0 auto', fontSize: '0.95rem', opacity: 0.85 }}>
           Celebrating our heroic voluntary donors across Bangladesh. Opt-in via your Donor Stats portal to be featured!
         </p>
+        <div style={{ marginTop: 16 }}>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="btn btn-secondary btn-sm"
+            style={{
+              background: 'rgba(255, 255, 255, 0.15)',
+              color: '#ffffff',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            <span>{isFetching ? 'Refreshing...' : 'Refresh Leaderboard'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Leaderboard Table / Cards */}
@@ -36,12 +59,28 @@ export default function Leaderboard() {
         ) : error ? (
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
             <p>Failed to load leaderboard data.</p>
+            <button
+              onClick={() => refetch()}
+              className="btn btn-secondary btn-sm"
+              style={{ marginTop: 12 }}
+            >
+              Retry
+            </button>
           </div>
         ) : leaderboard.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>
             <Users size={40} color="var(--border)" style={{ margin: '0 auto 12px' }} />
             <h3>No donors on the leaderboard yet</h3>
             <p style={{ marginTop: 4 }}>Be the first donor to opt in and save lives!</p>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="btn btn-primary btn-sm"
+              style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+              <span>{isFetching ? 'Checking...' : 'Refresh Now'}</span>
+            </button>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>

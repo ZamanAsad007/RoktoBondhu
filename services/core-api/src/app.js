@@ -32,6 +32,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
   app.use(rateLimiter({ windowMs: 60000, max: 200 }));

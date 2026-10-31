@@ -35,6 +35,8 @@ export async function apiClient(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
   const headers = {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
     ...(options.headers || {}),
   };
 
@@ -44,6 +46,7 @@ export async function apiClient(endpoint, options = {}) {
   }
 
   const config = {
+    cache: 'no-store',
     ...options,
     headers,
   };
