@@ -195,13 +195,17 @@ export default function DonorProfile() {
     setFeedback({ type: '', message: '' });
 
     const payload = {
+      blood_group: formData.bloodGroup,
+      date_of_birth: formData.dateOfBirth,
+      city: formData.city,
+      latitude: Number(formData.latitude),
+      longitude: Number(formData.longitude),
+      last_donated_at: formData.lastDonatedAt || null,
+      available: formData.available,
+      // CamelCase aliases
       bloodGroup: formData.bloodGroup,
       dateOfBirth: formData.dateOfBirth,
-      city: formData.city,
-      latitude: formData.latitude,
-      longitude: formData.longitude,
       lastDonatedAt: formData.lastDonatedAt || null,
-      available: formData.available,
     };
 
     updateProfileMutation.mutate(payload);

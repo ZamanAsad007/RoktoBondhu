@@ -137,10 +137,10 @@ export const api = {
   getMe: () => apiClient('/auth/me'),
 
   // Donor
-  getDonorProfile: () => apiClient('/donors/profile'),
-  updateDonorProfile: (body) => apiClient('/donors/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  getDonorProfile: () => apiClient('/donors/me'),
+  updateDonorProfile: (body) => apiClient('/donors/me', { method: 'PUT', body: JSON.stringify(body) }),
   setDonorAvailability: (available) =>
-    apiClient('/donors/availability', { method: 'PATCH', body: JSON.stringify({ available }) }),
+    apiClient('/donors/me/availability', { method: 'PATCH', body: JSON.stringify({ available }) }),
   updateAvailabilityWindows: (windows) =>
     apiClient('/donors/me/availability-windows', { method: 'PUT', body: JSON.stringify({ windows }) }),
 

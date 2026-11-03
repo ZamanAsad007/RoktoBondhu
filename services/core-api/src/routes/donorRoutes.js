@@ -10,8 +10,11 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.put('/me', validateBody(donorProfileSchema), donorController.upsertMe);
+router.put('/profile', validateBody(donorProfileSchema), donorController.upsertMe);
 router.get('/me', donorController.getMe);
+router.get('/profile', donorController.getMe);
 router.patch('/me/availability', validateBody(availabilitySchema), donorController.updateAvailability);
+router.patch('/availability', validateBody(availabilitySchema), donorController.updateAvailability);
 router.put('/me/availability-windows', donorController.updateAvailabilityWindows);
 router.get('/me/history', donorController.getHistory);
 router.get('/me/stats', donorStatsController.getMyStats);
