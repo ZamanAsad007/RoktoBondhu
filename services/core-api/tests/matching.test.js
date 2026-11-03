@@ -200,12 +200,6 @@ describe('Matching Query & Wave Jobs (Phase 5)', () => {
     busyDonorId = dBusy.userId;
   });
 
-  afterAll(async () => {
-    await closeMatchingQueue();
-    await db.pool.end();
-    await redis.quit();
-  });
-
   describe('PostGIS Geolocation Matching Query', () => {
     let testRequestId;
 
@@ -462,5 +456,9 @@ describe('Matching Query & Wave Jobs (Phase 5)', () => {
       expect(parseFloat(firstReq.distance_km)).toBeLessThanOrEqual(10);
       expect(['A+', 'AB+']).toContain(firstReq.blood_group); // A+ donor can donate to A+ or AB+
     });
+  });
+
+  afterAll(async () => {
+    await closeMatchingQueue();
   });
 });

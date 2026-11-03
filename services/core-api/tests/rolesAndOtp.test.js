@@ -43,11 +43,6 @@ describe('Roles, Middleware & Mock Phone OTP (Phase 1)', () => {
     adminUserId = adminRes.body.data.user.id;
   });
 
-  afterAll(async () => {
-    await pool.end();
-    await redis.quit();
-  });
-
   describe('Mock Phone OTP Flow', () => {
     it('should generate an OTP stored with TTL in Redis and log it', async () => {
       const sendOtpRes = await request(app)
