@@ -63,16 +63,16 @@ export default function CreateRequest() {
     setError('');
 
     const payload = {
-      patientName: formData.patientName.trim(),
-      bloodGroup: formData.bloodGroup,
-      unitsNeeded: parseInt(formData.unitsNeeded, 10),
-      hospitalName: formData.hospitalName.trim(),
+      patient_name: formData.patientName.trim(),
+      blood_group: formData.bloodGroup,
+      units_needed: parseInt(formData.unitsNeeded, 10),
+      hospital_name: formData.hospitalName.trim(),
       city: formData.city.trim(),
       latitude: parseFloat(formData.latitude),
       longitude: parseFloat(formData.longitude),
       urgency: formData.urgency,
-      neededBy: new Date(formData.neededBy).toISOString(),
-      contactPhone: formData.contactPhone.trim(),
+      needed_by: new Date(formData.neededBy).toISOString(),
+      contact_phone: formData.contactPhone.trim(),
     };
 
     createMutation.mutate(payload);

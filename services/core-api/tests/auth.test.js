@@ -19,11 +19,6 @@ describe('Auth Endpoints (Phase 1)', () => {
     await runMigrations();
   });
 
-  afterAll(async () => {
-    await pool.end();
-    await redis.quit();
-  });
-
   describe('POST /api/auth/register', () => {
     it('should register a new user successfully and return tokens', async () => {
       const res = await request(app)

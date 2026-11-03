@@ -15,7 +15,7 @@ function calculateAge(dateString) {
   return age;
 }
 
-const donorProfileSchema = z.object({
+const donorProfileBaseSchema = z.object({
   blood_group: z.enum(bloodGroups, {
     errorMap: () => ({ message: `Blood group must be one of: ${bloodGroups.join(', ')}` }),
   }),
@@ -50,6 +50,26 @@ const donorProfileSchema = z.object({
     }),
   available: z.boolean().optional().default(true),
 });
+
+const donorProfileSchema = z.preprocess((val) => {
+  if (val && typeof val === 'object') {
+    return {
+      ...val,
+      blood_group: val.blood_group ?? val.bloodGroup,
+      date_of_birth: val.date_of_birth ?? val.dateOfBirth,
+      latitude: val.latitude !== undefined && val.latitude !== '' ? Number(val.latitude) : val.latitude,
+      longitude: val.longitude !== undefined && val.longitude !== '' ? Number(val.longitude) : val.longitude,
+      last_donated_at:
+        val.last_donated_at !== undefined
+          ? val.last_donated_at
+          : val.lastDonatedAt !== undefined
+          ? val.lastDonatedAt
+          : undefined,
+      available: val.available !== undefined ? Boolean(val.available) : undefined,
+    };
+  }
+  return val;
+}, donorProfileBaseSchema);
 
 const availabilitySchema = z.object({
   available: z.boolean().optional(),

@@ -102,21 +102,22 @@ class BloodRequestService {
     }
 
     // 3. Calculate expires_at
-    const expiresAt = calculateExpiresAt(requestData.urgency, requestData.needed_by);
+    const neededByVal = requestData.needed_by || requestData.neededBy;
+    const expiresAt = calculateExpiresAt(requestData.urgency, neededByVal);
 
     // 4. Insert request
     const newRequest = await bloodRequestRepository.createRequest({
       requesterId: currentUser.id,
-      patientName: requestData.patient_name,
-      bloodGroup: requestData.blood_group,
-      unitsNeeded: requestData.units_needed,
-      hospitalName: requestData.hospital_name,
+      patientName: requestData.patient_name || requestData.patientName,
+      bloodGroup: requestData.blood_group || requestData.bloodGroup,
+      unitsNeeded: requestData.units_needed !== undefined ? requestData.units_needed : requestData.unitsNeeded,
+      hospitalName: requestData.hospital_name || requestData.hospitalName,
       latitude: requestData.latitude,
       longitude: requestData.longitude,
       city: requestData.city,
       urgency: requestData.urgency,
-      neededBy: requestData.needed_by,
-      contactPhone: requestData.contact_phone,
+      neededBy: neededByVal,
+      contactPhone: requestData.contact_phone || requestData.contactPhone,
       expiresAt: expiresAt.toISOString(),
     });
 

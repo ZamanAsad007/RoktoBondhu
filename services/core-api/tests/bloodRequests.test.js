@@ -79,11 +79,6 @@ describe('Blood Requests API and Service (Phase 4)', () => {
     await db.query(`UPDATE users SET role = 'ADMIN' WHERE id = $1`, [adminId]);
   });
 
-  afterAll(async () => {
-    await db.pool.end();
-    await redis.quit();
-  });
-
   describe('Pure Helpers (calculateExpiresAt & maskPhoneNumber)', () => {
     const fixedNow = new Date('2026-10-26T12:00:00Z');
 

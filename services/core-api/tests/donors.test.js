@@ -37,11 +37,6 @@ describe('Donor Profiles Endpoints & Seed (Phase 2)', () => {
     userWithoutProfileToken = res2.body.data.accessToken;
   });
 
-  afterAll(async () => {
-    await pool.end();
-    await redis.quit();
-  });
-
   describe('PUT /api/donors/me', () => {
     it('should create a donor profile with valid blood group, DOB, and coordinates', async () => {
       const res = await request(app)

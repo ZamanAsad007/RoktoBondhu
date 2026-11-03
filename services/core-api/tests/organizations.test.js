@@ -52,6 +52,7 @@ describe('Phase 17: Organizations, Blood Bank Inventory & Drives', () => {
       orgUser.id,
       donorUser.id,
     ]);
+    await pool.query("DELETE FROM users WHERE email LIKE '%@roktobondhu.org'");
   });
 
   describe('Organization Registration & Admin Verification', () => {

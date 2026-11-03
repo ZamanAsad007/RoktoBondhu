@@ -67,12 +67,6 @@ describe('Accept / Decline Flow & Concurrency Protection (Phase 6)', () => {
     donor3 = await setupDonor('Donor 3', 'd3_acc@test.com', '+8801700000103');
   });
 
-  afterAll(async () => {
-    await closeMatchingQueue();
-    await db.pool.end();
-    await redis.quit();
-  });
-
   describe('Transactional Accept and Decline Flow', () => {
     let bloodRequest;
     let match1Id, match2Id, match3Id;
@@ -404,5 +398,9 @@ describe('Accept / Decline Flow & Concurrency Protection (Phase 6)', () => {
       },
       30000
     );
+  });
+
+  afterAll(async () => {
+    await closeMatchingQueue();
   });
 });

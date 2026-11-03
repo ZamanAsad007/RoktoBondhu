@@ -3,7 +3,7 @@ const { BLOOD_GROUPS } = require('../domain/compatibility');
 
 const bangladeshPhoneRegex = /^(?:\+8801|01)[3-9]\d{8}$/;
 
-const createBloodRequestSchema = z.object({
+const createBloodRequestBaseSchema = z.object({
   patient_name: z.string().trim().min(2, 'Patient name must be at least 2 characters').max(100),
   blood_group: z.enum(BLOOD_GROUPS, {
     errorMap: () => ({ message: `Invalid blood group. Must be one of: ${BLOOD_GROUPS.join(', ')}` }),
@@ -36,6 +36,36 @@ const createBloodRequestSchema = z.object({
     message: 'Must be a valid Bangladeshi mobile number (e.g. 01712345678 or +8801712345678)',
   }),
 });
+
+const createBloodRequestSchema = z.preprocess((val) => {
+  if (val && typeof val === 'object') {
+    return {
+      ...val,
+      patient_name: val.patient_name ?? val.patientName,
+      blood_group: val.blood_group ?? val.bloodGroup,
+      units_needed:
+        val.units_needed !== undefined && val.units_needed !== ''
+          ? Number(val.units_needed)
+          : val.unitsNeeded !== undefined && val.unitsNeeded !== ''
+          ? Number(val.unitsNeeded)
+          : undefined,
+      hospital_name: val.hospital_name ?? val.hospitalName,
+      latitude:
+        val.latitude !== undefined && val.latitude !== ''
+          ? Number(val.latitude)
+          : val.latitude,
+      longitude:
+        val.longitude !== undefined && val.longitude !== ''
+          ? Number(val.longitude)
+          : val.longitude,
+      city: val.city,
+      urgency: val.urgency,
+      needed_by: val.needed_by ?? val.neededBy,
+      contact_phone: val.contact_phone ?? val.contactPhone,
+    };
+  }
+  return val;
+}, createBloodRequestBaseSchema);
 
 module.exports = {
   createBloodRequestSchema,

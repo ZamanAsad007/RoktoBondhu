@@ -74,6 +74,12 @@ async function seedAdminAndOrg(client) {
   const adminHash = await bcrypt.hash('AdminPassword123!', 10);
   const orgHash = await bcrypt.hash('OrgPassword123!', 10);
 
+  // Clear any existing users with conflicting phones if they have different emails
+  await client.query(`
+    DELETE FROM users WHERE phone IN ('+8801700999001', '+8801700999002', '+8801700999003')
+    AND email NOT IN ('admin@roktobondhu.org', 'hospital@roktobondhu.org', 'donor.1@example.com');
+  `);
+
   // 1. Super Admin
   await client.query(`
     INSERT INTO users (name, email, phone, password_hash, role, phone_verified)
@@ -179,7 +185,7 @@ async function seedDonors(count = 200) {
       const name = `${firstName} ${lastName}`;
       // Predictable emails for first 20 donors, timestamped for excess
       const email = i <= 20 ? `donor${i}@roktobondhu.org` : `donor_${timestamp}_${i}@roktobondhu.org`;
-      const phone = i <= 20 ? `+8801700${String(i).padStart(6, '0')}` : `+8801${Math.floor(300000000 + Math.random() * 699999999)}`;
+      const phone = i <= 20 ? `+8801733${String(i).padStart(6, '0')}` : `+8801${Math.floor(300000000 + Math.random() * 699999999)}`;
       const area = DHAKA_AREAS[(i - 1) % DHAKA_AREAS.length];
       const { latitude, longitude } = getRandomCoordinateAround(area.lat, area.lng, 2.0);
       const bloodGroup = i <= 8 ? BLOOD_GROUPS[i - 1] : getRandomElement(BLOOD_GROUP_WEIGHTS);
@@ -188,6 +194,9 @@ async function seedDonors(count = 200) {
       const available = Math.random() < 0.85; // 85% available
       const isLeaderboardDonor = i <= LEADERBOARD_PRESETS.length;
 
+      // Clear any conflicting user by phone before inserting
+      await client.query('DELETE FROM users WHERE phone = $1 AND email != $2;', [phone, email]);
+
       // 1. Create or Update User
       const userRes = await client.query(
         `
@@ -195,6 +204,7 @@ async function seedDonors(count = 200) {
         VALUES ($1, $2, $3, $4, 'USER', TRUE)
         ON CONFLICT (email) DO UPDATE
           SET password_hash = EXCLUDED.password_hash,
+              phone = EXCLUDED.phone,
               phone_verified = TRUE
         RETURNING id;
         `,
